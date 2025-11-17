@@ -37,7 +37,8 @@ def main(cfg):
     trainer = hydra.utils.instantiate(cfg.trainer.init, models=models, logger=logger, datamodule=dm, device=device)
 
     results = trainer.train(**cfg.trainer.train)
-    results = torch.Tensor(results)
+    # results = torch.Tensor(results)
+    print("Training finished. Results:", results)
 
 
 

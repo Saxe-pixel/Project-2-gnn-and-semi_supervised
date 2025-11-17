@@ -25,6 +25,7 @@ class SemiSupervisedEnsemble:
         self.scheduler = scheduler(optimizer=self.optimizer)
 
         # Dataloader setup
+        self.datamodule = datamodule
         self.train_dataloader = datamodule.train_dataloader()
         self.val_dataloader = datamodule.val_dataloader()
         self.test_dataloader = datamodule.test_dataloader()
@@ -37,7 +38,10 @@ class SemiSupervisedEnsemble:
             model.eval()
 
         val_losses = []
-        
+
+        y_mean = self.datamodule.y_mean.to(self.device)
+        y_std = self.datamodule.y_std.to(self.device)
+
         with torch.no_grad():
             for x, targets in self.val_dataloader:
                 x, targets = x.to(self.device), targets.to(self.device)
@@ -45,8 +49,11 @@ class SemiSupervisedEnsemble:
                 # Ensemble prediction
                 preds = [model(x) for model in self.models]
                 avg_preds = torch.stack(preds).mean(0)
+
+                avg_preds_denorm = avg_preds * y_std + y_mean
+                targets_denorm = targets * y_std + y_mean
                 
-                val_loss = torch.nn.functional.mse_loss(avg_preds, targets)
+                val_loss = torch.nn.functional.mse_loss(avg_preds_denorm, targets_denorm)
                 val_losses.append(val_loss.item())
         val_loss = np.mean(val_losses)
         return {"val_MSE": val_loss}

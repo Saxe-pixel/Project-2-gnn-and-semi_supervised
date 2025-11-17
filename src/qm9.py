@@ -61,6 +61,17 @@ class QM9DataModule(pl.LightningDataModule):
         rng = np.random.default_rng(seed=self.seed)
         dataset = dataset[rng.permutation(len(dataset))]
 
+        # Collect all y values
+        ys = torch.stack([d.y for d in dataset])
+        self.y_mean = ys.mean()
+        self.y_std = ys.std()
+
+        # Apply normalization
+        for d in dataset:
+            d.y = (d.y - self.y_mean) / self.y_std
+
+        print(f"Target normalization: mean={self.y_mean.item():.4f}, std={self.y_std.item():.4f}")
+
         # Subset dataset
         if self.subset_size is not None:
             dataset = dataset[:self.subset_size]
