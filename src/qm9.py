@@ -61,17 +61,6 @@ class QM9DataModule(pl.LightningDataModule):
         rng = np.random.default_rng(seed=self.seed)
         dataset = dataset[rng.permutation(len(dataset))]
 
-        # Collect all y values
-        ys = torch.stack([d.y for d in dataset])
-        self.y_mean = ys.mean()
-        self.y_std = ys.std()
-
-        # Apply normalization
-        for d in dataset:
-            d.y = (d.y - self.y_mean) / self.y_std
-
-        print(f"Target normalization: mean={self.y_mean.item():.4f}, std={self.y_std.item():.4f}")
-
         # Subset dataset
         if self.subset_size is not None:
             dataset = dataset[:self.subset_size]
@@ -88,6 +77,25 @@ class QM9DataModule(pl.LightningDataModule):
         self.data_train_labeled = dataset[split_idx[0]:split_idx[1]]
         self.data_val = dataset[split_idx[1]:split_idx[2]]
         self.data_test = dataset[split_idx[2]:]
+
+        # NORMALIZE TARGETS USING TRAIN-LABELED ONLY
+        ys = torch.stack([d.y for d in self.data_train_labeled])
+        self.y_mean = ys.mean()
+        self.y_std = ys.std()
+
+        # normalization function
+        def norm_dataset(dset):
+            for d in dset:
+                d.y = (d.y - self.y_mean) / self.y_std
+
+        # Apply normalization to ALL splits, using train stats
+        norm_dataset(self.data_train_labeled)
+        norm_dataset(self.data_train_unlabeled)
+        norm_dataset(self.data_val)
+        norm_dataset(self.data_test)
+
+        print(f"Target normalization (train only): mean={self.y_mean.item():.4f}, std={self.y_std.item():.4f}")
+
 
         # Set batch sizes. We want the labeled batch size to be the one given by the user, and the unlabeled one to be so that we have the same number of batches
         self.batch_size_train_labeled = self.batch_size_train
