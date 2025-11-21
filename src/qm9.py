@@ -20,7 +20,9 @@ class QM9DataModule(pl.LightningDataModule):
         splits: list[int] | list[float] = [0.72, 0.08, 0.1, 0.1],
         seed: int = 0,
         subset_size: int | None = None,
-        data_augmentation: bool = False, # Unused but here for compatibility
+        data_augmentation: bool = False,
+        augment_node_noise_std: float = 0.02,
+        augment_edge_drop_prob: float = 0.05,
         name: str = 'qm9',
         ood: bool = False,
 
@@ -34,7 +36,9 @@ class QM9DataModule(pl.LightningDataModule):
         self.splits = splits
         self.seed = seed
         self.subset_size = subset_size
-        self.data_augmentaion = data_augmentation
+        self.data_augmentation = data_augmentation
+        self.augment_node_noise_std = augment_node_noise_std
+        self.augment_edge_drop_prob = augment_edge_drop_prob
         self.name = name
         self.ood = ood
 
@@ -99,14 +103,34 @@ class QM9DataModule(pl.LightningDataModule):
 
         # Set batch sizes. We want the labeled batch size to be the one given by the user, and the unlabeled one to be so that we have the same number of batches
         self.batch_size_train_labeled = self.batch_size_train
-        self.batch_size_train_unlabeled = self.batch_size_train
-        #self.batch_size_train_unlabeled = int(
-        #    self.batch_size_train * len(self.data_train_unlabeled) / len(self.data_train_labeled)
-        #)
+        labeled_batches = max(1, int(np.ceil(len(self.data_train_labeled) / self.batch_size_train_labeled)))
+        target_unlabeled_batch = max(1, int(np.ceil(len(self.data_train_unlabeled) / labeled_batches)))
+        self.batch_size_train_unlabeled = target_unlabeled_batch
 
         print(f"QM9 dataset loaded with {len(self.data_train_labeled)} labeled, {len(self.data_train_unlabeled)} unlabeled, "
               f"{len(self.data_val)} validation, and {len(self.data_test)} test samples.")
         print(f"Batch sizes: labeled={self.batch_size_train_labeled}, unlabeled={self.batch_size_train_unlabeled}")
+
+    def augment_batch(self, batch: Data) -> Data:
+        if not getattr(self, 'data_augmentation', False) or batch is None:
+            return batch
+        augmented = batch.clone()
+        if getattr(augmented, "x", None) is not None:
+            noise = torch.randn_like(augmented.x) * self.augment_node_noise_std
+            augmented.x = augmented.x + noise
+        if (
+            getattr(augmented, "edge_index", None) is not None
+            and augmented.edge_index.numel() > 0
+            and self.augment_edge_drop_prob > 0
+        ):
+            num_edges = augmented.edge_index.size(1)
+            keep_mask = torch.rand(num_edges, device=augmented.edge_index.device) > self.augment_edge_drop_prob
+            if not torch.any(keep_mask):
+                keep_mask[torch.randint(0, num_edges, (1,), device=augmented.edge_index.device)] = True
+            augmented.edge_index = augmented.edge_index[:, keep_mask]
+            if getattr(augmented, "edge_attr", None) is not None:
+                augmented.edge_attr = augmented.edge_attr[keep_mask]
+        return augmented
 
     def train_dataloader(self, shuffle=True) -> DataLoader:
         return DataLoader(
