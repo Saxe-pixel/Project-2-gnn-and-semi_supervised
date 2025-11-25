@@ -4,7 +4,7 @@ defaults:
 method: mean-teacher
 
 train:
-  total_epochs: 250
+  total_epochs: 50
   validation_interval: 10
 
 init:
@@ -23,6 +23,6 @@ init:
     _partial_: true
     step_size: 1
     gamma: 0.975
-  ema_decay: 0.999
+  ema_decay: 0.99
   consistency_weight: 0.01
-  consistency_rampup_epochs: 10
+  consistency_rampup_epochs: 20

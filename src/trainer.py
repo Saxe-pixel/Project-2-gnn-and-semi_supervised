@@ -147,7 +147,11 @@ class MeanTeacherTrainer:
     def _current_consistency_weight(self, epoch: int) -> float:
         if self.consistency_rampup_epochs <= 0:
             return self.base_consistency_weight
-        ramp = min(1.0, epoch / self.consistency_rampup_epochs)
+
+        steps_per_epoch = max(1, len(self.train_dataloader))
+        total_ramp_steps = self.consistency_rampup_epochs * steps_per_epoch
+
+        ramp = min(1.0, self.global_step / total_ramp_steps)
         return self.base_consistency_weight * ramp
 
     def _augment_batch(self, batch):
@@ -155,18 +159,27 @@ class MeanTeacherTrainer:
             return batch
         return self.augmentation_fn(batch)
 
-    def validate(self):
-        self.teacher.eval()
+    def validate(self, use_teacher: bool = True):
+        """
+        If use_teacher=True: validate EMA teacher (what you normally report).
+        If use_teacher=False: validate the student.
+        """
+        model = self.teacher if use_teacher else self.student
+        model.eval()
+
         val_losses = []
         with torch.no_grad():
             for batch, targets in self.val_dataloader:
                 batch, targets = batch.to(self.device), targets.to(self.device)
-                preds = self.teacher(batch)
+                preds = model(batch)
                 preds_denorm = preds * self.y_std + self.y_mean
                 targets_denorm = targets * self.y_std + self.y_mean
                 val_loss = torch.nn.functional.mse_loss(preds_denorm, targets_denorm)
                 val_losses.append(val_loss.item())
-        return {"val_MSE": np.mean(val_losses)}
+
+        key = "val_MSE_teacher" if use_teacher else "val_MSE_student"
+        return {key: np.mean(val_losses)}
+
 
     def train(self, total_epochs, validation_interval):
         for epoch in (pbar := tqdm(range(1, total_epochs + 1))):
@@ -221,12 +234,22 @@ class MeanTeacherTrainer:
                 "supervised_loss": float(np.mean(supervised_losses)) if supervised_losses else 0.0,
                 "consistency_loss": float(np.mean(consistency_losses)) if consistency_losses else 0.0,
             }
+
             if epoch % validation_interval == 0 or epoch == total_epochs:
-                val_metrics = self.validate()
-                summary_dict.update(val_metrics)
+                # teacher metrics
+                val_teacher = self.validate(use_teacher=True)
+                # student metrics
+                val_student = self.validate(use_teacher=False)
+
+                summary_dict.update(val_teacher)
+                summary_dict.update(val_student)
+
                 pbar.set_postfix(summary_dict)
+
             self.logger.log_dict(summary_dict, step=epoch)
+
         return summary_dict
+
 
 class NCPSTrainer:
     def __init__(

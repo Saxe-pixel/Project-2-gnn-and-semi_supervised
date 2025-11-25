@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+
+name: ginegcn
+
+init:
+  _target_: models.GINEGCN
+  _partial_: false
+  num_node_features: 11     # same as GCN
+  hidden_channels: 128      # optional, only if you want to override the default

@@ -17,7 +17,7 @@ class QM9DataModule(pl.LightningDataModule):
         batch_size_train: int = 32,
         batch_size_inference: int = 32,
         num_workers: int = 0,
-        splits: list[int] | list[float] = [0.72, 0.08, 0.1, 0.1],
+        splits: list[int] | list[float] = [0.77, 0.03, 0.1, 0.1],
         seed: int = 0,
         subset_size: int | None = None,
         data_augmentation: bool = False,
