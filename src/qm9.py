@@ -8,6 +8,7 @@ from torch_geometric.data import Data
 from torch_geometric.datasets import QM9
 from torch_geometric.transforms import BaseTransform
 from qm9_utils import DataLoader, GetTarget
+from augmentations import augment_batch as augment_fn
 
 class QM9DataModule(pl.LightningDataModule):
     def __init__(
@@ -112,25 +113,10 @@ class QM9DataModule(pl.LightningDataModule):
         print(f"Batch sizes: labeled={self.batch_size_train_labeled}, unlabeled={self.batch_size_train_unlabeled}")
 
     def augment_batch(self, batch: Data) -> Data:
-        if not getattr(self, 'data_augmentation', False) or batch is None:
+        if batch is None:
             return batch
-        augmented = batch.clone()
-        if getattr(augmented, "x", None) is not None:
-            noise = torch.randn_like(augmented.x) * self.augment_node_noise_std
-            augmented.x = augmented.x + noise
-        if (
-            getattr(augmented, "edge_index", None) is not None
-            and augmented.edge_index.numel() > 0
-            and self.augment_edge_drop_prob > 0
-        ):
-            num_edges = augmented.edge_index.size(1)
-            keep_mask = torch.rand(num_edges, device=augmented.edge_index.device) > self.augment_edge_drop_prob
-            if not torch.any(keep_mask):
-                keep_mask[torch.randint(0, num_edges, (1,), device=augmented.edge_index.device)] = True
-            augmented.edge_index = augmented.edge_index[:, keep_mask]
-            if getattr(augmented, "edge_attr", None) is not None:
-                augmented.edge_attr = augmented.edge_attr[keep_mask]
-        return augmented
+        return augment_fn(batch)
+
 
     def train_dataloader(self, shuffle=True) -> DataLoader:
         return DataLoader(

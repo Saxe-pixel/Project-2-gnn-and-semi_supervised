@@ -4,25 +4,32 @@ defaults:
 method: mean-teacher
 
 train:
-  total_epochs: 50
-  validation_interval: 10
+  total_epochs: 300
+  validation_interval: 20
 
 init:
   _target_: trainer.MeanTeacherTrainer
+
   supervised_criterion:
     _target_: torch.nn.MSELoss
+
   unsupervised_criterion:
     _target_: torch.nn.MSELoss
+
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 0.001
+    lr: 0.0008
     weight_decay: 0.005
+
+  # Use cosine annealing (better for SSL training)
   scheduler:
-    _target_: torch.optim.lr_scheduler.StepLR
+    _target_: torch.optim.lr_scheduler.CosineAnnealingLR
     _partial_: true
-    step_size: 1
-    gamma: 0.975
-  ema_decay: 0.99
-  consistency_weight: 0.01
-  consistency_rampup_epochs: 20
+    T_max: 100
+
+  # Mean Teacher–specific
+  ema_decay: 0.95       # dynamically increased inside trainer
+  consistency_weight: 0.1
+  consistency_rampup_epochs: 10
+  warmup_epochs: 5

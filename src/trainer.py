@@ -85,6 +85,16 @@ class SemiSupervisedEnsemble:
             self.logger.log_dict(summary_dict, step=epoch)
 
 
+import torch
+import numpy as np
+from copy import deepcopy
+from tqdm import tqdm
+
+
+def denorm(pred, mean, std):
+    return pred * std + mean
+
+
 class MeanTeacherTrainer:
     def __init__(
         self,
@@ -96,159 +106,163 @@ class MeanTeacherTrainer:
         models,
         logger,
         datamodule,
-        ema_decay: float = 0.99,
-        consistency_weight: float = 1.0,
-        consistency_rampup_epochs: int = 5,
-    ) -> None:
-        if len(models) != 1:
-            raise ValueError("MeanTeacherTrainer expects exactly one student model")
+        ema_decay=0.99,
+        consistency_weight=0.1,
+        consistency_rampup_epochs=10,
+        warmup_epochs=5
+    ):
+        # One student
+        self.student = models[0].to(device)
+        self.teacher = deepcopy(self.student).to(device)
+
+        for p in self.teacher.parameters():
+            p.requires_grad_(False)
 
         self.device = device
-        self.student = models[0]
-        self.teacher = deepcopy(self.student).to(self.device)
-        for param in self.teacher.parameters():
-            param.requires_grad_(False)
-
         self.supervised_criterion = supervised_criterion
         self.unsupervised_criterion = unsupervised_criterion
         self.optimizer = optimizer(params=self.student.parameters())
         self.scheduler = scheduler(optimizer=self.optimizer)
-        self.ema_decay = ema_decay
-        self.base_consistency_weight = consistency_weight
-        self.consistency_rampup_epochs = consistency_rampup_epochs
 
-        self.datamodule = datamodule
-        self.train_dataloader = datamodule.train_dataloader()
-        self.unlabeled_dataloader = (
-            datamodule.unsupervised_train_dataloader()
-            if hasattr(datamodule, "unsupervised_train_dataloader")
-            else None
-        )
-        self.val_dataloader = datamodule.val_dataloader()
-        self.augmentation_fn = getattr(datamodule, 'augment_batch', None)
+        self.ema_initial = ema_decay
+        self.consistency_weight = consistency_weight
+        self.consistency_rampup_epochs = consistency_rampup_epochs
+        self.warmup_epochs = warmup_epochs
 
         self.logger = logger
         self.global_step = 0
 
-        self.y_mean = self.datamodule.y_mean.to(self.device)
-        self.y_std = self.datamodule.y_std.to(self.device)
+        self.datamodule = datamodule
+        self.train_labeled = datamodule.train_dataloader()
+        self.train_unlabeled = datamodule.unsupervised_train_dataloader()
+        self.val_loader = datamodule.val_dataloader()
+        self.augment = datamodule.augment_batch
 
-    def _update_teacher(self) -> None:
+        # stats
+        self.y_mean = datamodule.y_mean.to(device)
+        self.y_std = datamodule.y_std.to(device)
+
+    # --------------------------------------------------------
+    # EMA update with increasing decay schedule
+    # --------------------------------------------------------
+    def ema_decay(self, epoch):
+        return min(0.999, self.ema_initial + 0.0005 * epoch)
+
+    def update_teacher(self, epoch):
+        decay = self.ema_decay(epoch)
         with torch.no_grad():
-            # EMA for parameters
-            for t_param, s_param in zip(self.teacher.parameters(), self.student.parameters()):
-                t_param.data.mul_(self.ema_decay).add_(s_param.data, alpha=1 - self.ema_decay)
+            for t, s in zip(self.teacher.parameters(), self.student.parameters()):
+                t.data.mul_(decay).add_(s.data, alpha=1 - decay)
 
-            # BatchNorm running stats
-            for t_buf, s_buf in zip(self.teacher.buffers(), self.student.buffers()):
-                t_buf.data.copy_(s_buf.data)
+    # --------------------------------------------------------
+    def consistency_factor(self, epoch):
+        if epoch > self.consistency_rampup_epochs:
+            return self.consistency_weight
+        return self.consistency_weight * (epoch / self.consistency_rampup_epochs)
 
-
-    def _current_consistency_weight(self, epoch: int) -> float:
-        if self.consistency_rampup_epochs <= 0:
-            return self.base_consistency_weight
-
-        steps_per_epoch = max(1, len(self.train_dataloader))
-        total_ramp_steps = self.consistency_rampup_epochs * steps_per_epoch
-
-        ramp = min(1.0, self.global_step / total_ramp_steps)
-        return self.base_consistency_weight * ramp
-
-    def _augment_batch(self, batch):
-        if batch is None or self.augmentation_fn is None:
-            return batch
-        return self.augmentation_fn(batch)
-
-    def validate(self, use_teacher: bool = True):
-        """
-        If use_teacher=True: validate EMA teacher (what you normally report).
-        If use_teacher=False: validate the student.
-        """
-        model = self.teacher if use_teacher else self.student
-        model.eval()
-
-        val_losses = []
+    # --------------------------------------------------------
+    def validate(self):
+        self.teacher.eval()
+        losses = []
         with torch.no_grad():
-            for batch, targets in self.val_dataloader:
-                batch, targets = batch.to(self.device), targets.to(self.device)
-                preds = model(batch)
-                preds_denorm = preds * self.y_std + self.y_mean
-                targets_denorm = targets * self.y_std + self.y_mean
-                val_loss = torch.nn.functional.mse_loss(preds_denorm, targets_denorm)
-                val_losses.append(val_loss.item())
+            for batch, y in self.val_loader:
+                batch, y = batch.to(self.device), y.to(self.device)
+                pred = self.teacher(batch)
+                pred = denorm(pred, self.y_mean, self.y_std)
+                target = denorm(y, self.y_mean, self.y_std)
+                losses.append(torch.nn.functional.mse_loss(pred, target).item())
+        return {"val_MSE": float(np.mean(losses))}
 
-        key = "val_MSE_teacher" if use_teacher else "val_MSE_student"
-        return {key: np.mean(val_losses)}
-
-
+    # --------------------------------------------------------
     def train(self, total_epochs, validation_interval):
+        unl_iter = iter(self.train_unlabeled)
+
         for epoch in (pbar := tqdm(range(1, total_epochs + 1))):
+
             self.student.train()
             self.teacher.eval()
-            unlabeled_iter = iter(self.unlabeled_dataloader) if self.unlabeled_dataloader is not None else None
 
-            supervised_losses = []
-            consistency_losses = []
-            for labeled_batch, labeled_targets in self.train_dataloader:
-                labeled_batch = labeled_batch.to(self.device)
-                labeled_targets = labeled_targets.to(self.device)
-                if unlabeled_iter is not None:
-                    try:
-                        unlabeled_batch, _ = next(unlabeled_iter)
-                    except StopIteration:
-                        unlabeled_iter = iter(self.unlabeled_dataloader)
-                        unlabeled_batch, _ = next(unlabeled_iter)
-                    unlabeled_batch = unlabeled_batch.to(self.device)
-                else:
-                    unlabeled_batch = None
+            sup_losses, cons_losses = [], []
+
+            for batch_l, y_l in self.train_labeled:
+                batch_l = batch_l.to(self.device)
+                y_l = y_l.to(self.device)
+
+                # unlabeled
+                try:
+                    batch_u, _ = next(unl_iter)
+                except StopIteration:
+                    unl_iter = iter(self.train_unlabeled)
+                    batch_u, _ = next(unl_iter)
+
+                batch_u = batch_u.to(self.device)
+
+                # augment unlabeled batch
+                stu_in = self.augment(batch_u)
+                tea_in = batch_u
 
                 self.optimizer.zero_grad()
-                student_preds = self.student(labeled_batch)
-                supervised_loss = self.supervised_criterion(student_preds, labeled_targets)
 
-                consistency_loss = torch.tensor(0.0, device=self.device)
-                consistency_weight = self._current_consistency_weight(epoch)
-                if unlabeled_batch is not None:
-                    student_view = self._augment_batch(unlabeled_batch)
-                    teacher_view = unlabeled_batch
-                    student_unlabeled = self.student(student_view)
-                    with torch.no_grad():
-                        teacher_unlabeled = self.teacher(teacher_view)
-                    consistency_loss = self.unsupervised_criterion(student_unlabeled, teacher_unlabeled)
-                    if hasattr(labeled_batch, 'num_graphs') and hasattr(student_view, 'num_graphs'):
-                        batch_ratio = labeled_batch.num_graphs / max(1, student_view.num_graphs)
-                        consistency_weight = consistency_weight * batch_ratio
+                # supervised
+                pred_l = self.student(batch_l)
+                sup_loss = self.supervised_criterion(
+                    denorm(pred_l, self.y_mean, self.y_std),
+                    denorm(y_l, self.y_mean, self.y_std)
+                )
 
-                total_loss = supervised_loss + consistency_weight * consistency_loss
-                total_loss.backward()
+                # unsupervised
+                with torch.no_grad():
+                    tea_pred = self.teacher(tea_in)
+
+                stu_pred = self.student(stu_in)
+
+                cons_loss = self.unsupervised_criterion(
+                    denorm(stu_pred, self.y_mean, self.y_std),
+                    denorm(tea_pred, self.y_mean, self.y_std)
+                )
+
+                # combine
+                weight = self.consistency_factor(epoch)
+                loss = sup_loss + weight * cons_loss
+
+                loss.backward()
                 self.optimizer.step()
-                self._update_teacher()
-                self.global_step += 1
+                self.update_teacher(epoch)
 
-                supervised_losses.append(supervised_loss.detach().item())
-                consistency_losses.append(consistency_loss.detach().item())
+                sup_losses.append(sup_loss.item())
+                cons_losses.append(cons_loss.item())
 
             self.scheduler.step()
 
-            summary_dict = {
-                "supervised_loss": float(np.mean(supervised_losses)) if supervised_losses else 0.0,
-                "consistency_loss": float(np.mean(consistency_losses)) if consistency_losses else 0.0,
+            log = {
+                "supervised_loss": float(np.mean(sup_losses)),
+                "consistency_loss": float(np.mean(cons_losses)),
+                "epoch": epoch,
             }
 
-            if epoch % validation_interval == 0 or epoch == total_epochs:
-                # teacher metrics
-                val_teacher = self.validate(use_teacher=True)
-                # student metrics
-                val_student = self.validate(use_teacher=False)
+            if epoch % validation_interval == 0:
+                val = self.validate()
+                log.update(val)
+                pbar.set_postfix(log)
 
-                summary_dict.update(val_teacher)
-                summary_dict.update(val_student)
+            self.logger.log_dict(log, step=epoch)
 
-                pbar.set_postfix(summary_dict)
+        return log
 
-            self.logger.log_dict(summary_dict, step=epoch)
 
-        return summary_dict
+
+import torch
+import numpy as np
+from tqdm import tqdm
+
+
+def sharpen(pseudo, tau=2.0):
+    mean = pseudo.mean(dim=0, keepdim=True)
+    return mean + tau * (pseudo - mean)
+
+
+def denorm(pred, mean, std):
+    return pred * std + mean
 
 
 class NCPSTrainer:
@@ -262,161 +276,155 @@ class NCPSTrainer:
         models,
         logger,
         datamodule,
-        num_models: int = 2,        # <--- NEW
-        cps_weight: float = 1.0,
-        cps_rampup_epochs: int = 5,
+        num_models: int = 3,      # ← added argument (fix)
+        cps_weight=0.1,
+        cps_rampup_epochs=5
     ):
-        if len(models) == 0:
-            raise ValueError("NCPSTrainer received no models")
-
         self.device = device
+        self.logger = logger
 
-        # If only one model is passed, clone it num_models-1 times
+        # ----------------------------------------------------
+        # MODEL DIVERSITY / CLONING FOR n-CPS
+        # ----------------------------------------------------
         if len(models) == 1 and num_models > 1:
+            # Clone the base model (ensures fair comparison to MT/Ensemble)
             base = models[0].to(device)
-            self.models = [base] + [deepcopy(base).to(device) for _ in range(num_models - 1)]
+            self.models = [base] + [
+                deepcopy(base).to(device) for _ in range(num_models - 1)
+            ]
         else:
-            assert len(models) >= 2, "n-CPS needs at least 2 models"
+            # Already multiple models passed in
             self.models = [m.to(device) for m in models]
+
+        # Add seed diversity
+        for i, m in enumerate(self.models):
+            torch.manual_seed(42 + i)
+
+        # Optimizer over all model parameters
+        self.optimizer = optimizer(
+            params=[p for m in self.models for p in m.parameters()]
+        )
+        self.scheduler = scheduler(optimizer=self.optimizer)
 
         self.supervised_criterion = supervised_criterion
         self.unsupervised_criterion = unsupervised_criterion
 
-        all_params = [p for m in self.models for p in m.parameters()]
-        self.optimizer = optimizer(params=all_params)
-        self.scheduler = scheduler(optimizer=self.optimizer)
-
-        self.datamodule = datamodule
-        self.train_dataloader = datamodule.train_dataloader()
-        self.unlabeled_dataloader = (
-            datamodule.unsupervised_train_dataloader()
-            if hasattr(datamodule, "unsupervised_train_dataloader")
-            else None
-        )
-        self.val_dataloader = datamodule.val_dataloader()
-        self.augmentation_fn = getattr(datamodule, "augment_batch", None)
-
-        self.logger = logger
-
         self.cps_weight = cps_weight
         self.cps_rampup_epochs = cps_rampup_epochs
 
-        # For your QM9 regression MSE metric
+        # ----------------------------------------------------
+        # DATA
+        # ----------------------------------------------------
+        self.datamodule = datamodule
+        self.train_labeled = datamodule.train_dataloader()
+        self.train_unlabeled = datamodule.unsupervised_train_dataloader()
+        self.val_loader = datamodule.val_dataloader()
+
+        self.augment = datamodule.augment_batch
+
+        # Normalization stats
         self.y_mean = datamodule.y_mean.to(device)
         self.y_std = datamodule.y_std.to(device)
 
-    def _current_cps_weight(self, epoch: int) -> float:
-        if self.cps_rampup_epochs <= 0:
+    # --------------------------------------------------------
+    def ramp(self, epoch):
+        if epoch >= self.cps_rampup_epochs:
             return self.cps_weight
-        ramp = min(1.0, epoch / self.cps_rampup_epochs)
-        return self.cps_weight * ramp
+        return self.cps_weight * epoch / self.cps_rampup_epochs
 
-    def _augment_batch(self, batch):
-        if batch is None or self.augmentation_fn is None:
-            return batch
-        return self.augmentation_fn(batch)
-
+    # --------------------------------------------------------
     def validate(self):
         for m in self.models:
             m.eval()
 
-        val_losses = []
+        losses = []
         with torch.no_grad():
-            for batch, targets in self.val_dataloader:
-                batch, targets = batch.to(self.device), targets.to(self.device)
+            for batch, y in self.val_loader:
+                batch, y = batch.to(self.device), y.to(self.device)
 
-                # ensemble preds
-                preds_list = [m(batch) for m in self.models]
-                avg_preds = torch.stack(preds_list).mean(0)
+                preds = torch.stack([m(batch) for m in self.models]).mean(0)
+                preds = denorm(preds, self.y_mean, self.y_std)
+                y = denorm(y, self.y_mean, self.y_std)
 
-                preds_denorm = avg_preds * self.y_std + self.y_mean
-                targets_denorm = targets * self.y_std + self.y_mean
+                losses.append(torch.nn.functional.mse_loss(preds, y).item())
 
-                val_loss = F.mse_loss(preds_denorm, targets_denorm)
-                val_losses.append(val_loss.item())
+        return {"val_MSE": float(np.mean(losses))}
 
-        return {"val_MSE": float(np.mean(val_losses))}
-
+    # --------------------------------------------------------
     def train(self, total_epochs, validation_interval):
+        unl_iter = iter(self.train_unlabeled)
+
         for epoch in (pbar := tqdm(range(1, total_epochs + 1))):
+
             for m in self.models:
                 m.train()
 
-            unlabeled_iter = iter(self.unlabeled_dataloader) if self.unlabeled_dataloader is not None else None
-            cps_weight = self._current_cps_weight(epoch)
+            sup_losses, cps_losses = [], []
+            cpsw = self.ramp(epoch)
 
-            supervised_losses_logged = []
-            cps_losses_logged = []
+            for batch_l, y_l in self.train_labeled:
+                batch_l, y_l = batch_l.to(self.device), y_l.to(self.device)
 
-            for labeled_batch, labeled_targets in self.train_dataloader:
-                labeled_batch = labeled_batch.to(self.device)
-                labeled_targets = labeled_targets.to(self.device)
+                # unlabeled batch
+                try:
+                    batch_u, _ = next(unl_iter)
+                except StopIteration:
+                    unl_iter = iter(self.train_unlabeled)
+                    batch_u, _ = next(unl_iter)
 
-                if unlabeled_iter is not None:
-                    try:
-                        unlabeled_batch, _ = next(unlabeled_iter)
-                    except StopIteration:
-                        unlabeled_iter = iter(self.unlabeled_dataloader)
-                        unlabeled_batch, _ = next(unlabeled_iter)
-                    unlabeled_batch = unlabeled_batch.to(self.device)
-                else:
-                    unlabeled_batch = None
+                batch_u = batch_u.to(self.device)
 
                 self.optimizer.zero_grad()
 
-                # ---- supervised loss on labeled ----
-                sup_losses = []
+                # --------------------
+                # supervised loss
+                # --------------------
+                sup_ls = []
                 for m in self.models:
-                    preds = m(labeled_batch)
-                    sup_losses.append(self.supervised_criterion(preds, labeled_targets))
-                sup_loss = sum(sup_losses) / len(sup_losses)
+                    pred_l = m(batch_l)
+                    sup_ls.append(
+                        self.supervised_criterion(
+                            denorm(pred_l, self.y_mean, self.y_std),
+                            denorm(y_l, self.y_mean, self.y_std),
+                        )
+                    )
+                sup_loss = torch.stack(sup_ls).mean()
 
-                # ---- CPS loss on unlabeled (regression) ----
-                cps_loss = torch.tensor(0.0, device=self.device)
-                if unlabeled_batch is not None and cps_weight > 0.0:
-                    weak_view = unlabeled_batch
-                    strong_view = self._augment_batch(unlabeled_batch)
+                # --------------------
+                # CPS consistency loss
+                # --------------------
+                weak_pred = torch.stack([m(batch_u) for m in self.models])
+                pseudo = sharpen(weak_pred, tau=2.0)
 
-                    # predictions of each model on weak view
-                    weak_preds = [m(weak_view) for m in self.models]
+                strong_batch = self.augment(batch_u)
+                strong_preds = torch.stack([m(strong_batch) for m in self.models])
 
-                    # pseudo-targets for each model = mean of others' weak preds
-                    pseudo_targets = []
-                    n = len(self.models)
-                    with torch.no_grad():
-                        for i in range(n):
-                            others = [j for j in range(n) if j != i]
-                            pseudo = sum(weak_preds[j] for j in others) / len(others)
-                            pseudo_targets.append(pseudo)
+                cps_loss = self.unsupervised_criterion(
+                    denorm(strong_preds, self.y_mean, self.y_std),
+                    denorm(pseudo, self.y_mean, self.y_std),
+                )
 
-                    # now each model predicts on strong view, match pseudo-targets
-                    cps_losses = []
-                    for m, pseudo in zip(self.models, pseudo_targets):
-                        strong_preds = m(strong_view)
-                        cps_losses.append(self.unsupervised_criterion(strong_preds, pseudo))
-
-                    cps_loss = sum(cps_losses) / len(cps_losses)
-
-                total_loss = sup_loss + cps_weight * cps_loss
-                total_loss.backward()
+                total = sup_loss + cpsw * cps_loss
+                total.backward()
                 self.optimizer.step()
 
-                supervised_losses_logged.append(sup_loss.detach().item())
-                cps_losses_logged.append(cps_loss.detach().item())
+                sup_losses.append(sup_loss.item())
+                cps_losses.append(cps_loss.item())
 
             self.scheduler.step()
 
-            summary_dict = {
-                "supervised_loss": float(np.mean(supervised_losses_logged)) if supervised_losses_logged else 0.0,
-                "cps_loss": float(np.mean(cps_losses_logged)) if cps_losses_logged else 0.0,
-                "cps_weight": cps_weight,
+            log = {
+                "supervised_loss": float(np.mean(sup_losses)),
+                "cps_loss": float(np.mean(cps_losses)),
+                "epoch": epoch,
             }
 
-            if epoch % validation_interval == 0 or epoch == total_epochs:
-                val_metrics = self.validate()
-                summary_dict.update(val_metrics)
-                pbar.set_postfix(summary_dict)
+            if epoch % validation_interval == 0:
+                val = self.validate()
+                log.update(val)
+                pbar.set_postfix(log)
 
-            self.logger.log_dict(summary_dict, step=epoch)
+            self.logger.log_dict(log, step=epoch)
 
-        return summary_dict
+        return log
+

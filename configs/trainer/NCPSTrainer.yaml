@@ -4,13 +4,13 @@ defaults:
 method: n-cps
 
 train:
-  total_epochs: 100
-  validation_interval: 10
+  total_epochs: 300
+  validation_interval: 20
 
 init:
   _target_: trainer.NCPSTrainer
 
-  num_models: 3
+  num_models: 3        # balanced diversity
 
   supervised_criterion:
     _target_: torch.nn.MSELoss
@@ -21,15 +21,13 @@ init:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 0.001
+    lr: 0.0007          # slightly lower works better with 3-model CPS
     weight_decay: 0.005
 
   scheduler:
-    _target_: torch.optim.lr_scheduler.StepLR
+    _target_: torch.optim.lr_scheduler.CosineAnnealingLR
     _partial_: true
-    step_size: 1
-    gamma: 0.975
+    T_max: 100
 
-  # n-CPS specific
-  cps_weight: 0.01          # like consistency_weight
-  cps_rampup_epochs: 10
+  cps_weight: 0.1       # previously 0.01 = too weak to matter
+  cps_rampup_epochs: 5  # faster rampup than MT

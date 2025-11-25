@@ -28,4 +28,4 @@ module purge
 module load python3/3.11.13
 
 source ~/venv/gnn311/bin/activate
-python src/run.py trainer=mean-teacher
+python src/run.py trainer=NCPSTrainer model=gcn
