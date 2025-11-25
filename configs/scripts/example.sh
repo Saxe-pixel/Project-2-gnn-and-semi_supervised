@@ -23,5 +23,9 @@
 
 ### nvidia-smi
 
-source ~/miniconda3/bin/activate gnn-qm9
-python src/run.py
+# Load modules
+module purge
+module load python3/3.11.13
+
+source ~/venv/gnn311/bin/activate
+python src/run.py trainer=mean-teacher

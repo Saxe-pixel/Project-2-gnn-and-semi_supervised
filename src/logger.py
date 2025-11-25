@@ -13,7 +13,7 @@ class WandBLogger:
         name,
         local_dir=".",
         job_type=None,
-        entity="bnns-for-molecules",
+        entity="magnusev-dtu",
         project_name="semi-supervised-ensembles",
         disable=False,
     ):
