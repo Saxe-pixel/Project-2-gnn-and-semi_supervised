@@ -1,5 +1,6 @@
 from copy import deepcopy
 import torch.nn.functional as F
+from augmentations import augment_batch
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -108,8 +109,10 @@ class MeanTeacherTrainer:
         datamodule,
         ema_decay=0.99,
         consistency_weight=0.1,
-        consistency_rampup_epochs=10,
-        warmup_epochs=5
+        consistency_rampup_epochs=50,
+        confidence_threshold=0.1,
+        strong_augment_node_noise_std=0.1,
+        strong_augment_edge_drop_prob=0.1,
     ):
         # One student
         self.student = models[0].to(device)
@@ -126,8 +129,7 @@ class MeanTeacherTrainer:
 
         self.ema_initial = ema_decay
         self.consistency_weight = consistency_weight
-        self.consistency_rampup_epochs = consistency_rampup_epochs
-        self.warmup_epochs = warmup_epochs
+        self.rampup_epochs = consistency_rampup_epochs
 
         self.logger = logger
         self.global_step = 0
@@ -136,7 +138,14 @@ class MeanTeacherTrainer:
         self.train_labeled = datamodule.train_dataloader()
         self.train_unlabeled = datamodule.unsupervised_train_dataloader()
         self.val_loader = datamodule.val_dataloader()
-        self.augment = datamodule.augment_batch
+        
+        # Augmentation policies
+        self.weak_augment = datamodule.augment_batch
+        self.strong_augment = lambda batch: augment_batch(
+            batch, 
+            noise_std=strong_augment_node_noise_std, 
+            drop_edge_p=strong_augment_edge_drop_prob
+        )
 
         # stats
         self.y_mean = datamodule.y_mean.to(device)
@@ -156,9 +165,9 @@ class MeanTeacherTrainer:
 
     # --------------------------------------------------------
     def consistency_factor(self, epoch):
-        if epoch > self.consistency_rampup_epochs:
+        if epoch > self.rampup_epochs:
             return self.consistency_weight
-        return self.consistency_weight * (epoch / self.consistency_rampup_epochs)
+        return self.consistency_weight * (epoch / self.rampup_epochs)
 
     # --------------------------------------------------------
     def validate(self):
@@ -182,7 +191,7 @@ class MeanTeacherTrainer:
             self.student.train()
             self.teacher.eval()
 
-            sup_losses, cons_losses = [], []
+            sup_losses, cons_losses_u, cons_losses_l = [], [], []
 
             for batch_l, y_l in self.train_labeled:
                 batch_l = batch_l.to(self.device)
@@ -198,9 +207,11 @@ class MeanTeacherTrainer:
                 batch_u = batch_u.to(self.device)
 
                 # augment unlabeled batch
-                stu_in = self.augment(batch_u)
-                tea_in = batch_u
-
+                stu_in_u = self.strong_augment(batch_u)
+                tea_in_u = self.weak_augment(batch_u)
+                stu_in_l = self.strong_augment(batch_l)
+                tea_in_l = self.weak_augment(batch_l)
+                
                 self.optimizer.zero_grad()
 
                 # supervised
@@ -211,32 +222,41 @@ class MeanTeacherTrainer:
                 )
 
                 # unsupervised
-                with torch.no_grad():
-                    tea_pred = self.teacher(tea_in)
+                with torch.no_grad(): 
+                    tea_pred_u = self.teacher(tea_in_u)
+                    tea_pred_l = self.teacher(tea_in_l)
 
-                stu_pred = self.student(stu_in)
+                stu_pred_u = self.student(stu_in_u)
+                stu_pred_l = self.student(stu_in_l)
 
-                cons_loss = self.unsupervised_criterion(
-                    denorm(stu_pred, self.y_mean, self.y_std),
-                    denorm(tea_pred, self.y_mean, self.y_std)
+                cons_loss_u = self.unsupervised_criterion(
+                    denorm(stu_pred_u, self.y_mean, self.y_std),
+                    denorm(tea_pred_u, self.y_mean, self.y_std)
+                )
+
+                cons_loss_l = self.unsupervised_criterion(
+                    denorm(stu_pred_l, self.y_mean, self.y_std),
+                    denorm(tea_pred_l, self.y_mean, self.y_std)
                 )
 
                 # combine
                 weight = self.consistency_factor(epoch)
-                loss = sup_loss + weight * cons_loss
+                loss = sup_loss + weight * (cons_loss_u + cons_loss_l)
 
                 loss.backward()
                 self.optimizer.step()
                 self.update_teacher(epoch)
 
                 sup_losses.append(sup_loss.item())
-                cons_losses.append(cons_loss.item())
+                cons_losses_u.append(cons_loss_u.item())
+                cons_losses_l.append(cons_loss_l.item())
 
             self.scheduler.step()
 
             log = {
-                "supervised_loss": float(np.mean(sup_losses)),
-                "consistency_loss": float(np.mean(cons_losses)),
+                "sup_loss": float(np.mean(sup_losses)),
+                "cons_loss_u": float(np.mean(cons_losses_u)),
+                "cons_loss_l": float(np.mean(cons_losses_l)),
                 "epoch": epoch,
             }
 
@@ -277,8 +297,11 @@ class NCPSTrainer:
         logger,
         datamodule,
         num_models: int = 3,      # ← added argument (fix)
-        cps_weight=0.1,
-        cps_rampup_epochs=5
+        cps_weight=1.0,
+        cps_rampup_epochs=50,
+        confidence_threshold=0.1,
+        strong_augment_node_noise_std=0.1,
+        strong_augment_edge_drop_prob=0.1,
     ):
         self.device = device
         self.logger = logger
@@ -320,8 +343,13 @@ class NCPSTrainer:
         self.train_unlabeled = datamodule.unsupervised_train_dataloader()
         self.val_loader = datamodule.val_dataloader()
 
-        self.augment = datamodule.augment_batch
-
+        self.weak_augment = datamodule.augment_batch
+        self.strong_augment = lambda batch: augment_batch(
+            batch, 
+            noise_std=strong_augment_node_noise_std, 
+            drop_edge_p=strong_augment_edge_drop_prob
+        )
+        self.confidence_threshold = confidence_threshold
         # Normalization stats
         self.y_mean = datamodule.y_mean.to(device)
         self.y_std = datamodule.y_std.to(device)
@@ -359,7 +387,7 @@ class NCPSTrainer:
             for m in self.models:
                 m.train()
 
-            sup_losses, cps_losses = [], []
+            sup_losses, cps_losses_u, cps_losses_l = [], [], []
             cpsw = self.ramp(epoch)
 
             for batch_l, y_l in self.train_labeled:
@@ -393,29 +421,52 @@ class NCPSTrainer:
                 # --------------------
                 # CPS consistency loss
                 # --------------------
-                weak_pred = torch.stack([m(batch_u) for m in self.models])
-                pseudo = sharpen(weak_pred, tau=2.0)
+                # --- On Unlabeled Data ---
+                with torch.no_grad():
+                    weak_preds_u = torch.stack([m(self.weak_augment(batch_u)) for m in self.models])
+                    pseudo_u_std = weak_preds_u.std(0)
+                    mask = (pseudo_u_std < self.confidence_threshold).float()
+                    pseudo_u = weak_preds_u.mean(0)
 
-                strong_batch = self.augment(batch_u)
-                strong_preds = torch.stack([m(strong_batch) for m in self.models])
+                if mask.sum() > 0:
+                    strong_preds_u = torch.stack([m(self.strong_augment(batch_u)) for m in self.models])
+                    cps_loss_u = self.unsupervised_criterion(
+                        denorm(strong_preds_u, self.y_mean, self.y_std),
+                        denorm(pseudo_u, self.y_mean, self.y_std)
+                    )
+                    cps_loss_u = (cps_loss_u * mask).sum() / mask.sum()
+                else:
+                    cps_loss_u = torch.tensor(0.0, device=self.device)
 
-                cps_loss = self.unsupervised_criterion(
-                    denorm(strong_preds, self.y_mean, self.y_std),
-                    denorm(pseudo, self.y_mean, self.y_std),
+                # --- On Labeled Data ---
+                with torch.no_grad():
+                    weak_preds_l = torch.stack([m(self.weak_augment(batch_l)) for m in self.models])
+                    pseudo_l = weak_preds_l.mean(0)
+
+                strong_preds_l = torch.stack([m(self.strong_augment(batch_l)) for m in self.models])
+                cps_loss_l = self.unsupervised_criterion(
+                    denorm(strong_preds_l, self.y_mean, self.y_std),
+                    denorm(pseudo_l, self.y_mean, self.y_std)
                 )
 
-                total = sup_loss + cpsw * cps_loss
+                total = sup_loss + cpsw * (cps_loss_u + cps_loss_l)
                 total.backward()
                 self.optimizer.step()
 
                 sup_losses.append(sup_loss.item())
-                cps_losses.append(cps_loss.item())
+                if cps_loss_u.item() > 0:
+                    cps_losses_u.append(cps_loss_u.item())
+                cps_losses_l.append(cps_loss_l.item())
 
             self.scheduler.step()
 
+            mean_cps_u = np.mean(cps_losses_u) if cps_losses_u else 0.0
+            mean_cps_l = np.mean(cps_losses_l) if cps_losses_l else 0.0
+
             log = {
-                "supervised_loss": float(np.mean(sup_losses)),
-                "cps_loss": float(np.mean(cps_losses)),
+                "sup_loss": float(np.mean(sup_losses)),
+                "cps_loss_u": float(mean_cps_u),
+                "cps_loss_l": float(mean_cps_l),
                 "epoch": epoch,
             }
 
@@ -427,4 +478,3 @@ class NCPSTrainer:
             self.logger.log_dict(log, step=epoch)
 
         return log
-

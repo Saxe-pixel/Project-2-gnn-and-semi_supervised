@@ -4,7 +4,7 @@ defaults:
 method: mean-teacher
 
 train:
-  total_epochs: 300
+  total_epochs: 200
   validation_interval: 20
 
 init:
