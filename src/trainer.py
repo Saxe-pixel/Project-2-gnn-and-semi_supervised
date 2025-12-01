@@ -141,7 +141,11 @@ class MeanTeacherTrainer:
 
             # BatchNorm running stats
             for t_buf, s_buf in zip(self.teacher.buffers(), self.student.buffers()):
-                t_buf.data.copy_(s_buf.data)
+                try:
+                    t_buf.data.mul_(self.ema_decay).add_(s_buf.data, alpha=1 - self.ema_decay)
+                except Exception:
+                    t_buf.data.copy_(s_buf.data)
+
 
 
     def _current_consistency_weight(self, epoch: int) -> float:
@@ -161,7 +165,7 @@ class MeanTeacherTrainer:
 
     def validate(self, use_teacher: bool = True):
         """
-        If use_teacher=True: validate EMA teacher (what you normally report).
+        If use_teacher=True: validate EMA teacher (deafault).
         If use_teacher=False: validate the student.
         """
         model = self.teacher if use_teacher else self.student
@@ -210,7 +214,7 @@ class MeanTeacherTrainer:
                 consistency_weight = self._current_consistency_weight(epoch)
                 if unlabeled_batch is not None:
                     student_view = self._augment_batch(unlabeled_batch)
-                    teacher_view = unlabeled_batch
+                    teacher_view = self._augment_batch(unlabeled_batch)
                     student_unlabeled = self.student(student_view)
                     with torch.no_grad():
                         teacher_unlabeled = self.teacher(teacher_view)
@@ -233,6 +237,7 @@ class MeanTeacherTrainer:
             summary_dict = {
                 "supervised_loss": float(np.mean(supervised_losses)) if supervised_losses else 0.0,
                 "consistency_loss": float(np.mean(consistency_losses)) if consistency_losses else 0.0,
+                "consistency_weight": self._current_consistency_weight(epoch),
             }
 
             if epoch % validation_interval == 0 or epoch == total_epochs:
@@ -262,7 +267,7 @@ class NCPSTrainer:
         models,
         logger,
         datamodule,
-        num_models: int = 2,        # <--- NEW
+        num_models: int = 2,        
         cps_weight: float = 1.0,
         cps_rampup_epochs: int = 5,
     ):
@@ -271,7 +276,7 @@ class NCPSTrainer:
 
         self.device = device
 
-        # If only one model is passed, clone it num_models-1 times
+        # only one model is passed, clone it num_models-1 times
         if len(models) == 1 and num_models > 1:
             base = models[0].to(device)
             self.models = [base] + [deepcopy(base).to(device) for _ in range(num_models - 1)]
@@ -301,7 +306,7 @@ class NCPSTrainer:
         self.cps_weight = cps_weight
         self.cps_rampup_epochs = cps_rampup_epochs
 
-        # For your QM9 regression MSE metric
+        # QM9 regression MSE metric
         self.y_mean = datamodule.y_mean.to(device)
         self.y_std = datamodule.y_std.to(device)
 
@@ -364,14 +369,14 @@ class NCPSTrainer:
 
                 self.optimizer.zero_grad()
 
-                # ---- supervised loss on labeled ----
+                # supervised loss on labeled
                 sup_losses = []
                 for m in self.models:
                     preds = m(labeled_batch)
                     sup_losses.append(self.supervised_criterion(preds, labeled_targets))
                 sup_loss = sum(sup_losses) / len(sup_losses)
 
-                # ---- CPS loss on unlabeled (regression) ----
+                # CPS loss on unlabeled
                 cps_loss = torch.tensor(0.0, device=self.device)
                 if unlabeled_batch is not None and cps_weight > 0.0:
                     weak_view = unlabeled_batch
@@ -389,7 +394,7 @@ class NCPSTrainer:
                             pseudo = sum(weak_preds[j] for j in others) / len(others)
                             pseudo_targets.append(pseudo)
 
-                    # now each model predicts on strong view, match pseudo-targets
+                    # each model predicts on strong view, match pseudo-targets
                     cps_losses = []
                     for m, pseudo in zip(self.models, pseudo_targets):
                         strong_preds = m(strong_view)

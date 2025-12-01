@@ -1,12 +1,12 @@
 defaults:
   - _self_
 
-name: HC gcn ensemble 
+name: deeper gcn
 
 init:
   _target_: models.GCN
   _partial_: false
   num_node_features: 11
-  hidden_channels: 128
-  num_layers: 3
+  hidden_channels: 192
+  num_layers: 5
   dropout: 0.2

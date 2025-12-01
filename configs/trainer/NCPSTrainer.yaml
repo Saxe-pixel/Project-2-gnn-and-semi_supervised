@@ -10,7 +10,7 @@ train:
 init:
   _target_: trainer.NCPSTrainer
 
-  num_models: 3
+  num_models: 4
 
   supervised_criterion:
     _target_: torch.nn.MSELoss
@@ -21,7 +21,7 @@ init:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 0.001
+    lr: 0.01
     weight_decay: 0.005
 
   scheduler:

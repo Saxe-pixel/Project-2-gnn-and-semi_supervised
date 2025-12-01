@@ -5,41 +5,37 @@ from torch.nn import BatchNorm1d, Dropout, Sequential, ReLU, Linear
 
 
 class GCN(torch.nn.Module):
-    def __init__(self, num_node_features, hidden_channels=128):
-        super(GCN, self).__init__()
-        self.conv1 = GCNConv(num_node_features, hidden_channels)
-        self.bn1 = BatchNorm1d(hidden_channels)
+    def __init__(self, num_node_features, hidden_channels=128, num_layers: int = 3, dropout: float = 0.2):
+        super().__init__()
+        if num_layers < 2:
+            raise ValueError("GCN must have at least 2 layers")
 
-        self.conv2 = GCNConv(hidden_channels, hidden_channels)
-        self.bn2 = BatchNorm1d(hidden_channels)
+        self.convs = torch.nn.ModuleList()
+        self.bns = torch.nn.ModuleList()
 
-        self.conv3 = GCNConv(hidden_channels, hidden_channels)
-        self.bn3 = BatchNorm1d(hidden_channels)
+        # First layer: input -> hidden
+        self.convs.append(GCNConv(num_node_features, hidden_channels))
+        self.bns.append(BatchNorm1d(hidden_channels))
 
-        # Regularization
-        self.dropout = Dropout(p=0.2)
+        # Hidden layers: hidden -> hidden
+        for _ in range(num_layers - 1):
+            self.convs.append(GCNConv(hidden_channels, hidden_channels))
+            self.bns.append(BatchNorm1d(hidden_channels))
 
+        self.dropout = Dropout(p=dropout)
         self.linear = torch.nn.Linear(hidden_channels, 1)
 
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
 
-        # Layer 1
-        x = self.conv1(x, edge_index)
-        x = self.bn1(x)
-        x = F.relu(x)
-        x = self.dropout(x)
-
-        # Layer 2
-        x = self.conv2(x, edge_index)
-        x = self.bn2(x)
-        x = F.relu(x)
-        x = self.dropout(x)
-
-        # Layer 3
-        x = self.conv3(x, edge_index)
-        x = self.bn3(x)
-        x = F.relu(x)
+        # Apply stacked GCN blocks
+        num_blocks = len(self.convs)
+        for idx, (conv, bn) in enumerate(zip(self.convs, self.bns)):
+            x = conv(x, edge_index)
+            x = bn(x)
+            x = F.relu(x)
+            if idx < num_blocks - 1:
+                x = self.dropout(x)
 
         # Pool + readout
         x = global_mean_pool(x, batch)
@@ -96,7 +92,7 @@ class GINEGCN(torch.nn.Module):
                 "but got None."
             )
 
-        # Lazily construct conv layers once we know edge_attr dimension
+        # construct conv layers once we know edge_attr dimension
         if self.conv1 is None:
             edge_dim = edge_attr.size(-1)
             self._build_convs(edge_dim, device=x.device)
