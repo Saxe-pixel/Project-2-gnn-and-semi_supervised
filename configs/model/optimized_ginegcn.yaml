@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+
+name: optimized_ginegcn
+
+init:
+  _target_: models.OptimizedGINEGNN
+  _partial_: false
+
+  num_node_features: 11     # required
+  edge_dim: 4               # <-- you must set this based on your dataset
+
+  hidden_channels: 128      # optional override
+  num_layers: 5             # default is 5, but you can keep it
+  dropout_rate: 0.3         # default is 0.3

@@ -1,7 +1,7 @@
 defaults:
   - _self_
 
-name: gcn NCPSTrainer
+name: gcn ncps_0.0005_150_epochs
 
 init:
   _target_: models.GCN

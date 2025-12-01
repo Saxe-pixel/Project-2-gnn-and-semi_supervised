@@ -9,6 +9,16 @@ import torch
 from torch.optim.lr_scheduler import StepLR
 
 
+def sharpen(pseudo, tau=2.0):
+    """Sharpening function to encourage more confident predictions."""
+    mean = pseudo.mean(dim=0, keepdim=True)
+    return mean + tau * (pseudo - mean)
+
+
+def denorm(pred, mean, std):
+    return pred * std + mean
+
+
 def seed_everything(seed, force_deterministic):
     torch.manual_seed(seed)
     np.random.seed(seed)

@@ -1,7 +1,7 @@
 defaults:
   - _self_
 
-method: mean-teacher
+method: optimized-mean-teacher
 
 train:
   total_epochs: 200
@@ -19,17 +19,21 @@ init:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 0.0008
+    lr: 0.001          # tuned learning rate
     weight_decay: 0.005
 
-  # Use cosine annealing (better for SSL training)
+  # Cosine annealing scheduler (matches other trainers)
   scheduler:
     _target_: torch.optim.lr_scheduler.CosineAnnealingLR
     _partial_: true
     T_max: 100
 
-  # Mean Teacher–specific
-  ema_decay: 0.99       # dynamically increased inside trainer
-  consistency_weight: 0.01
+  # Mean Teacher–specific hyperparameters
+  ema_decay: 0.99                # initial EMA decay
+  consistency_weight: 0.01       # gentler consistency pressure
   consistency_rampup_epochs: 50
-  warmup_epochs: 7
+
+  # Uncertainty / augmentation hyperparameters
+  confidence_threshold: 0.1
+  strong_augment_node_noise_std: 0.05
+  strong_augment_edge_drop_prob: 0.05

@@ -4,11 +4,18 @@ from torch_geometric.data import Batch
 import random
 
 
-def drop_edges(edge_index, drop_prob=0.05):
-    """Drops a percentage of edges uniformly."""
+def drop_edges(edge_index, edge_attr=None, drop_prob=0.05):
+    """Drops a percentage of edges uniformly and keeps edge_attr in sync."""
     num_edges = edge_index.size(1)
     keep_mask = torch.rand(num_edges, device=edge_index.device) > drop_prob
-    return edge_index[:, keep_mask]
+
+    edge_index = edge_index[:, keep_mask]
+
+    if edge_attr is not None:
+        # Ensure edge_attr matches the kept edges
+        edge_attr = edge_attr[keep_mask]
+
+    return edge_index, edge_attr
 
 
 def mask_node_features(x, mask_prob=0.05):
@@ -29,8 +36,11 @@ def augment_batch(data, drop_edge_p=0.05, mask_feature_p=0.05, noise_std=0.05):
     # 1. Node feature masking
     data.x = mask_node_features(data.x, mask_feature_p)
 
-    # 2. Edge dropout
-    data.edge_index = drop_edges(data.edge_index, drop_edge_p)
+    # 2. Edge dropout (keep edge_attr aligned with edge_index)
+    edge_attr = getattr(data, "edge_attr", None)
+    data.edge_index, edge_attr = drop_edges(data.edge_index, edge_attr, drop_edge_p)
+    if edge_attr is not None:
+        data.edge_attr = edge_attr
 
     # 3. Coordinate Jitter (if present)
     if hasattr(data, 'pos') and data.pos is not None:

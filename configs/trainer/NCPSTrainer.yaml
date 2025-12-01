@@ -5,7 +5,7 @@ method: n-cps
 
 train:
   total_epochs: 200
-  validation_interval: 20
+  validation_interval: 10
 
 init:
   _target_: trainer.NCPSTrainer
@@ -29,5 +29,13 @@ init:
     _partial_: true
     T_max: 100
 
-  cps_weight: 0.1       # previously 0.01 = too weak to matter
-  cps_rampup_epochs: 5  # faster rampup than MT
+  # CPS hyperparameters tuned for stability on QM9 regression
+  cps_weight: 0.0005
+  cps_rampup_epochs: 150
+
+  # Only trust low-uncertainty pseudo-labels from the ensemble
+  confidence_threshold: 0.1
+
+  # Strong augmentations for CPS (match Mean Teacher defaults)
+  strong_augment_node_noise_std: 0.05
+  strong_augment_edge_drop_prob: 0.05

@@ -1,5 +1,5 @@
-
 from itertools import chain
+import inspect
 import hydra
 import torch
 from omegaconf import OmegaConf
@@ -29,7 +29,19 @@ def main(cfg):
 
     dm = hydra.utils.instantiate(cfg.dataset.init)
 
-    model = hydra.utils.instantiate(cfg.model.init).to(device)
+    # We must pass dataset-specific dimensions to the model.
+    # Get them from the datamodule after it has been set up.
+    num_node_features = dm.data_train_labeled.num_node_features
+    edge_dim = getattr(dm.data_train_labeled, "num_edge_features", None)
+
+    # Build model kwargs based on the model's __init__ signature
+    target_cls = hydra.utils.get_class(cfg.model.init._target_)
+    sig = inspect.signature(target_cls.__init__)
+    model_kwargs = {"num_node_features": num_node_features}
+    if "edge_dim" in sig.parameters and edge_dim is not None:
+        model_kwargs["edge_dim"] = edge_dim
+
+    model = hydra.utils.instantiate(cfg.model.init, **model_kwargs).to(device)
 
     if cfg.compile_model:
         model = torch.compile(model)
