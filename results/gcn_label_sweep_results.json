@@ -1,0 +1,86 @@
+{
+  "metric": "test_MSE",
+  "data": {
+    "Supervised Ensemble": [
+      {
+        "labels_pct": 0.5,
+        "unlabeled_pct": 79.5,
+        "test_loss": 0.050389659724065235
+      },
+      {
+        "labels_pct": 1,
+        "unlabeled_pct": 79,
+        "test_loss": 0.04601458619747843
+      },
+      {
+        "labels_pct": 2,
+        "unlabeled_pct": 78,
+        "test_loss": 0.034509602934122086
+      },
+      {
+        "labels_pct": 5,
+        "unlabeled_pct": 75,
+        "test_loss": 0.025519484654068947
+      },
+      {
+        "labels_pct": 8,
+        "unlabeled_pct": 72,
+        "test_loss": 0.02340849010007722
+      }
+    ],
+    "Mean Teacher (EMA)": [
+      {
+        "labels_pct": 0.5,
+        "unlabeled_pct": 79.5,
+        "test_loss": 0.05293816487704005
+      },
+      {
+        "labels_pct": 1,
+        "unlabeled_pct": 79,
+        "test_loss": 0.04421592237693923
+      },
+      {
+        "labels_pct": 2,
+        "unlabeled_pct": 78,
+        "test_loss": 0.03489331741418157
+      },
+      {
+        "labels_pct": 5,
+        "unlabeled_pct": 75,
+        "test_loss": 0.025346561201981137
+      },
+      {
+        "labels_pct": 8,
+        "unlabeled_pct": 72,
+        "test_loss": 0.023126484027930667
+      }
+    ],
+    "n-CPS Ensemble": [
+      {
+        "labels_pct": 0.5,
+        "unlabeled_pct": 79.5,
+        "test_loss": 0.0506961319063391
+      },
+      {
+        "labels_pct": 1,
+        "unlabeled_pct": 79,
+        "test_loss": 0.04342224768229893
+      },
+      {
+        "labels_pct": 2,
+        "unlabeled_pct": 78,
+        "test_loss": 0.03383523332221167
+      },
+      {
+        "labels_pct": 5,
+        "unlabeled_pct": 75,
+        "test_loss": 0.02598793139415128
+      },
+      {
+        "labels_pct": 8,
+        "unlabeled_pct": 72,
+        "test_loss": 0.0243995301425457
+      }
+    ]
+  }
+}

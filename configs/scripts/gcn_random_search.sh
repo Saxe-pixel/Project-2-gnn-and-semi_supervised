@@ -1,21 +1,27 @@
 #!/bin/bash
 ### Random hyperparameter search for GCN on QM9 (1% labeled / 79% unlabeled), per trainer, using validation MSE.
-#BSUB -q gpua100
+#BSUB -q gpuv100
+#BSUB -gpu "num=1"
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
-#BSUB -W 08:00
+#BSUB -W 05:00
 #BSUB -R "rusage[mem=12GB]"
 #BSUB -J gcn_random_search
-#BSUB -o batch/logs/gcn_random_search_%J.out
-#BSUB -e batch/logs/gcn_random_search_%J.err
+#BSUB -o results/logs/gcn_random_search_%J.out
+#BSUB -e results/logs/gcn_random_search_%J.err
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-cd "$REPO_ROOT"
+# Start from the directory where bsub was called (repo root)
+cd "${LS_SUBCWD:-$PWD}"
 
-mkdir -p batch/logs outputs
+# Repo + output dirs relative to submission dir
+REPO_ROOT="$(pwd)"
+export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
+
+OUTPUT_BASE="${OUTPUT_BASE:-${REPO_ROOT}/results}"
+LOG_DIR="${LOG_DIR:-${OUTPUT_BASE}/logs}"
+mkdir -p "${OUTPUT_BASE}" "${LOG_DIR}"
 
 source ~/miniconda3/bin/activate gnn-qm9
 
@@ -25,10 +31,11 @@ SEED_BASE="${SEED_BASE:-0}"                      # offset for seeds per trial
 TOTAL_EPOCHS="${TOTAL_EPOCHS:-80}"
 VAL_INTERVAL="${VAL_INTERVAL:-10}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data}"
-RESULTS_JSON="${RESULTS_JSON:-${REPO_ROOT}/outputs/gcn_random_search_results.json}"
-PLOT_PATH="${PLOT_PATH:-${REPO_ROOT}/outputs/gcn_random_search_val.png}"
+RESULTS_JSON="${RESULTS_JSON:-${OUTPUT_BASE}/gcn_random_search_results.json}"
+PLOT_PATH="${PLOT_PATH:-${OUTPUT_BASE}/gcn_random_search_val.png}"
 
-export REPO_ROOT DATA_DIR RESULTS_JSON PLOT_PATH TOTAL_EPOCHS VAL_INTERVAL TRIALS SEED_BASE
+export REPO_ROOT DATA_DIR RESULTS_JSON PLOT_PATH \
+       TOTAL_EPOCHS VAL_INTERVAL TRIALS SEED_BASE
 
 python - <<'PY'
 import json
@@ -75,10 +82,11 @@ rng = random.Random(0xC0DE)
 
 def sample_common():
     return {
-        "model.hidden_channels": rng.choice([64, 128, 256]),
-        "model.num_layers": rng.choice([2, 3, 4, 5]),
-        "model.dropout": round(rng.uniform(0.0, 0.5), 2),
-        "trainer.init.optimizer.lr": 10 ** rng.uniform(-3.5, -2.0),          # ~0.0003-0.01
+        # NOTE: these go under model.init.*, not model.*
+        "model.init.hidden_channels": rng.choice([64, 128, 256]),
+        "model.init.num_layers": rng.choice([2, 3, 4, 5]),
+        "model.init.dropout": round(rng.uniform(0.0, 0.5), 2),
+        "trainer.init.optimizer.lr": 10 ** rng.uniform(-3.5, -2.0),           # ~0.0003-0.01
         "trainer.init.optimizer.weight_decay": 10 ** rng.uniform(-4.5, -2.5), # ~3e-5-3e-3
     }
 
@@ -155,7 +163,7 @@ with initialize(config_path="configs", version_base=None):
                 f"dataset.init.splits=[{split_str}]",
                 f"dataset.init.data_dir={data_dir}",
                 f"seed={trial_seed}",
-                "logger.disable=true",
+                "logger.disable=false",
                 f"logger.name={trainer_id}_trial{trial}",
                 "logger.group=gcn_random_search",
                 f"trainer.train.total_epochs={total_epochs}",
@@ -164,10 +172,7 @@ with initialize(config_path="configs", version_base=None):
 
             # add hyperparam overrides
             for k, v in {**common, **specific}.items():
-                if isinstance(v, float):
-                    overrides.append(f"{k}={v}")
-                else:
-                    overrides.append(f"{k}={v}")
+                overrides.append(f"{k}={v}")
 
             cfg = compose(config_name="run", overrides=overrides)
 

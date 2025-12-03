@@ -3,10 +3,15 @@ defaults:
 
 name: deeper gcn
 
+num_node_features: 11
+hidden_channels: 192
+num_layers: 5
+dropout: 0.2
+
 init:
   _target_: models.GCN
   _partial_: false
-  num_node_features: 11
-  hidden_channels: 192
-  num_layers: 5
-  dropout: 0.2
+  num_node_features: ${model.num_node_features}
+  hidden_channels: ${model.hidden_channels}
+  num_layers: ${model.num_layers}
+  dropout: ${model.dropout}

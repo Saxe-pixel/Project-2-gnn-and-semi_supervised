@@ -1,0 +1,481 @@
+{
+  "metric": "val_MSE",
+  "data": {
+    "Supervised Ensemble": [
+      {
+        "trial": 0,
+        "seed": 0,
+        "val_loss": 0.19760361739567348,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.46,
+          "trainer.init.optimizer.lr": 0.0013049775435164145,
+          "trainer.init.optimizer.weight_decay": 0.0007647281888687585
+        },
+        "specific": {}
+      },
+      {
+        "trial": 1,
+        "seed": 1,
+        "val_loss": 0.051871037908962796,
+        "common": {
+          "model.init.hidden_channels": 128,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.16,
+          "trainer.init.optimizer.lr": 0.0009236376716703884,
+          "trainer.init.optimizer.weight_decay": 0.00016551858032493462
+        },
+        "specific": {}
+      },
+      {
+        "trial": 2,
+        "seed": 2,
+        "val_loss": 0.061997563179050176,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.35,
+          "trainer.init.optimizer.lr": 0.004674255069123948,
+          "trainer.init.optimizer.weight_decay": 6.584750597089235e-05
+        },
+        "specific": {}
+      },
+      {
+        "trial": 3,
+        "seed": 3,
+        "val_loss": 0.053668537842375894,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.13,
+          "trainer.init.optimizer.lr": 0.0004682162238133101,
+          "trainer.init.optimizer.weight_decay": 0.0005527717569490592
+        },
+        "specific": {}
+      },
+      {
+        "trial": 4,
+        "seed": 4,
+        "val_loss": 0.18359440990856715,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 3,
+          "model.init.dropout": 0.47,
+          "trainer.init.optimizer.lr": 0.0027775422311700536,
+          "trainer.init.optimizer.weight_decay": 0.00041632629426175414
+        },
+        "specific": {}
+      },
+      {
+        "trial": 5,
+        "seed": 5,
+        "val_loss": 0.8305913976260594,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.48,
+          "trainer.init.optimizer.lr": 0.003020352451240884,
+          "trainer.init.optimizer.weight_decay": 0.0001243840971069378
+        },
+        "specific": {}
+      },
+      {
+        "trial": 6,
+        "seed": 6,
+        "val_loss": 0.04586114627974374,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.39,
+          "trainer.init.optimizer.lr": 0.0038507866708992556,
+          "trainer.init.optimizer.weight_decay": 0.0004812705385924341
+        },
+        "specific": {}
+      },
+      {
+        "trial": 7,
+        "seed": 7,
+        "val_loss": 0.05920215589659555,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.01,
+          "trainer.init.optimizer.lr": 0.0012315117584313661,
+          "trainer.init.optimizer.weight_decay": 5.942020697062737e-05
+        },
+        "specific": {}
+      },
+      {
+        "trial": 8,
+        "seed": 8,
+        "val_loss": 0.056762332894972393,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 4,
+          "model.init.dropout": 0.16,
+          "trainer.init.optimizer.lr": 0.0020109782052445623,
+          "trainer.init.optimizer.weight_decay": 0.0009113589457142277
+        },
+        "specific": {}
+      },
+      {
+        "trial": 9,
+        "seed": 9,
+        "val_loss": 0.170919731259346,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.42,
+          "trainer.init.optimizer.lr": 0.001015994917655063,
+          "trainer.init.optimizer.weight_decay": 0.002443884023582716
+        },
+        "specific": {}
+      }
+    ],
+    "Mean Teacher (EMA)": [
+      {
+        "trial": 0,
+        "seed": 0,
+        "val_loss": 0.10216102323361806,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 3,
+          "model.init.dropout": 0.42,
+          "trainer.init.optimizer.lr": 0.002134935095032689,
+          "trainer.init.optimizer.weight_decay": 3.903213496766905e-05
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.653,
+          "trainer.init.ema_decay": 0.972,
+          "trainer.init.consistency_rampup_epochs": 20
+        }
+      },
+      {
+        "trial": 1,
+        "seed": 1,
+        "val_loss": 0.15025767258235387,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.42,
+          "trainer.init.optimizer.lr": 0.003113469750626058,
+          "trainer.init.optimizer.weight_decay": 0.00033634462912226175
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.054,
+          "trainer.init.ema_decay": 0.9959,
+          "trainer.init.consistency_rampup_epochs": 30
+        }
+      },
+      {
+        "trial": 2,
+        "seed": 2,
+        "val_loss": 0.06079461798071861,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.3,
+          "trainer.init.optimizer.lr": 0.007351517786236036,
+          "trainer.init.optimizer.weight_decay": 0.00010907050474231043
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.103,
+          "trainer.init.ema_decay": 0.9813,
+          "trainer.init.consistency_rampup_epochs": 30
+        }
+      },
+      {
+        "trial": 3,
+        "seed": 3,
+        "val_loss": 0.06913800431149346,
+        "common": {
+          "model.init.hidden_channels": 128,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.15,
+          "trainer.init.optimizer.lr": 0.0006218497352402067,
+          "trainer.init.optimizer.weight_decay": 0.00013959222106877208
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.591,
+          "trainer.init.ema_decay": 0.9912,
+          "trainer.init.consistency_rampup_epochs": 5
+        }
+      },
+      {
+        "trial": 4,
+        "seed": 4,
+        "val_loss": 0.05655881283538682,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.37,
+          "trainer.init.optimizer.lr": 0.0083934969140928,
+          "trainer.init.optimizer.weight_decay": 0.0006912428890048777
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.113,
+          "trainer.init.ema_decay": 0.9707,
+          "trainer.init.consistency_rampup_epochs": 30
+        }
+      },
+      {
+        "trial": 5,
+        "seed": 5,
+        "val_loss": 0.3338524401187897,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.12,
+          "trainer.init.optimizer.lr": 0.0030168315088022883,
+          "trainer.init.optimizer.weight_decay": 5.264438233981562e-05
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.626,
+          "trainer.init.ema_decay": 0.9983,
+          "trainer.init.consistency_rampup_epochs": 10
+        }
+      },
+      {
+        "trial": 6,
+        "seed": 6,
+        "val_loss": 0.04328254823173795,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.01,
+          "trainer.init.optimizer.lr": 0.003961423831509253,
+          "trainer.init.optimizer.weight_decay": 0.0016920846728191166
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.425,
+          "trainer.init.ema_decay": 0.9749,
+          "trainer.init.consistency_rampup_epochs": 30
+        }
+      },
+      {
+        "trial": 7,
+        "seed": 7,
+        "val_loss": 0.10892857504742486,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 4,
+          "model.init.dropout": 0.46,
+          "trainer.init.optimizer.lr": 0.005898729812098859,
+          "trainer.init.optimizer.weight_decay": 0.0009476396648215415
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.188,
+          "trainer.init.ema_decay": 0.9846,
+          "trainer.init.consistency_rampup_epochs": 30
+        }
+      },
+      {
+        "trial": 8,
+        "seed": 8,
+        "val_loss": 0.04241302449788366,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 3,
+          "model.init.dropout": 0.08,
+          "trainer.init.optimizer.lr": 0.006200884854075197,
+          "trainer.init.optimizer.weight_decay": 5.779803453295586e-05
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.544,
+          "trainer.init.ema_decay": 0.9935,
+          "trainer.init.consistency_rampup_epochs": 5
+        }
+      },
+      {
+        "trial": 9,
+        "seed": 9,
+        "val_loss": 0.9383828469685146,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.3,
+          "trainer.init.optimizer.lr": 0.00044088219674820304,
+          "trainer.init.optimizer.weight_decay": 0.00015529784439515716
+        },
+        "specific": {
+          "trainer.init.consistency_weight": 0.582,
+          "trainer.init.ema_decay": 0.9974,
+          "trainer.init.consistency_rampup_epochs": 20
+        }
+      }
+    ],
+    "n-CPS Ensemble": [
+      {
+        "trial": 0,
+        "seed": 0,
+        "val_loss": 0.05154534003564289,
+        "common": {
+          "model.init.hidden_channels": 128,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.22,
+          "trainer.init.optimizer.lr": 0.0015651348223904855,
+          "trainer.init.optimizer.weight_decay": 9.210374344108831e-05
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.0095,
+          "trainer.init.cps_rampup_epochs": 5,
+          "trainer.init.num_models": 4
+        }
+      },
+      {
+        "trial": 1,
+        "seed": 1,
+        "val_loss": 0.06121738414679255,
+        "common": {
+          "model.init.hidden_channels": 128,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.06,
+          "trainer.init.optimizer.lr": 0.000366055852035392,
+          "trainer.init.optimizer.weight_decay": 8.056283872723029e-05
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.0739,
+          "trainer.init.cps_rampup_epochs": 5,
+          "trainer.init.num_models": 3
+        }
+      },
+      {
+        "trial": 2,
+        "seed": 2,
+        "val_loss": 0.05625344919306891,
+        "common": {
+          "model.init.hidden_channels": 128,
+          "model.init.num_layers": 3,
+          "model.init.dropout": 0.12,
+          "trainer.init.optimizer.lr": 0.0009630269157078465,
+          "trainer.init.optimizer.weight_decay": 0.001103595150868652
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.1084,
+          "trainer.init.cps_rampup_epochs": 5,
+          "trainer.init.num_models": 4
+        }
+      },
+      {
+        "trial": 3,
+        "seed": 3,
+        "val_loss": 0.26622893129076275,
+        "common": {
+          "model.init.hidden_channels": 128,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.46,
+          "trainer.init.optimizer.lr": 0.004345659442074499,
+          "trainer.init.optimizer.weight_decay": 6.1774867009294e-05
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.0645,
+          "trainer.init.cps_rampup_epochs": 20,
+          "trainer.init.num_models": 4
+        }
+      },
+      {
+        "trial": 4,
+        "seed": 4,
+        "val_loss": 0.055404920130968094,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.04,
+          "trainer.init.optimizer.lr": 0.0027559043490207012,
+          "trainer.init.optimizer.weight_decay": 0.00010845312248648292
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.0258,
+          "trainer.init.cps_rampup_epochs": 5,
+          "trainer.init.num_models": 3
+        }
+      },
+      {
+        "trial": 5,
+        "seed": 5,
+        "val_loss": 0.06561565505606788,
+        "common": {
+          "model.init.hidden_channels": 64,
+          "model.init.num_layers": 4,
+          "model.init.dropout": 0.09,
+          "trainer.init.optimizer.lr": 0.0009562874942363253,
+          "trainer.init.optimizer.weight_decay": 0.0024345554513178465
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.0969,
+          "trainer.init.cps_rampup_epochs": 5,
+          "trainer.init.num_models": 3
+        }
+      },
+      {
+        "trial": 6,
+        "seed": 6,
+        "val_loss": 0.12233598956039973,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 4,
+          "model.init.dropout": 0.38,
+          "trainer.init.optimizer.lr": 0.00036403115466798216,
+          "trainer.init.optimizer.weight_decay": 0.0012544817139183919
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.0448,
+          "trainer.init.cps_rampup_epochs": 5,
+          "trainer.init.num_models": 3
+        }
+      },
+      {
+        "trial": 7,
+        "seed": 7,
+        "val_loss": 0.040641085909945626,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.13,
+          "trainer.init.optimizer.lr": 0.0024666708590894036,
+          "trainer.init.optimizer.weight_decay": 0.0001939378321148235
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.1993,
+          "trainer.init.cps_rampup_epochs": 10,
+          "trainer.init.num_models": 4
+        }
+      },
+      {
+        "trial": 8,
+        "seed": 8,
+        "val_loss": 0.08272463828325272,
+        "common": {
+          "model.init.hidden_channels": 128,
+          "model.init.num_layers": 2,
+          "model.init.dropout": 0.09,
+          "trainer.init.optimizer.lr": 0.0004250171061581009,
+          "trainer.init.optimizer.weight_decay": 0.002086868519257388
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.1466,
+          "trainer.init.cps_rampup_epochs": 10,
+          "trainer.init.num_models": 4
+        }
+      },
+      {
+        "trial": 9,
+        "seed": 9,
+        "val_loss": 0.05529263775263514,
+        "common": {
+          "model.init.hidden_channels": 256,
+          "model.init.num_layers": 5,
+          "model.init.dropout": 0.23,
+          "trainer.init.optimizer.lr": 0.0009360812749688747,
+          "trainer.init.optimizer.weight_decay": 5.722558577732699e-05
+        },
+        "specific": {
+          "trainer.init.cps_weight": 0.1703,
+          "trainer.init.cps_rampup_epochs": 10,
+          "trainer.init.num_models": 3
+        }
+      }
+    ]
+  }
+}

@@ -3,8 +3,11 @@ defaults:
 
 name: ginegcn ncps
 
+num_node_features: 11
+hidden_channels: 128
+
 init:
   _target_: models.GINEGCN
   _partial_: false
-  num_node_features: 11     # same as GCN
-  hidden_channels: 128      # optional, only if you want to override the default
+  num_node_features: ${model.num_node_features}     # same as GCN
+  hidden_channels: ${model.hidden_channels}         # optional, only if you want to override the default

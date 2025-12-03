@@ -1,31 +1,38 @@
 #!/bin/bash
 ### Sweep seeds with fixed 1% labeled / 79% unlabeled splits for all trainers, plot test MSE.
-#BSUB -q gpua100
+#BSUB -q gpuv100
+#BSUB -gpu "num=1"
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
-#BSUB -W 08:00
+#BSUB -W 05:00
 #BSUB -R "rusage[mem=12GB]"
 #BSUB -J gcn_seed_sweep
-#BSUB -o batch/logs/gcn_seed_sweep_%J.out
-#BSUB -e batch/logs/gcn_seed_sweep_%J.err
+#BSUB -o results/logs/gcn_seed_sweep_%J.out
+#BSUB -e results/logs/gcn_seed_sweep_%J.err
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-cd "$REPO_ROOT"
+# Start from the directory where bsub was called (repo root)
+cd "${LS_SUBCWD:-$PWD}"
 
-mkdir -p batch/logs outputs
+# Repo + output dirs relative to submission dir
+REPO_ROOT="$(pwd)"
+export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"   # <-- add this line
+
+OUTPUT_BASE="${OUTPUT_BASE:-${REPO_ROOT}/results}"
+LOG_DIR="${LOG_DIR:-${OUTPUT_BASE}/logs}"
+mkdir -p "${OUTPUT_BASE}" "${LOG_DIR}"
 
 source ~/miniconda3/bin/activate gnn-qm9
+
 
 # Configurable knobs
 SEEDS="${SEEDS:-0 1 2 3 4}"
 TOTAL_EPOCHS="${TOTAL_EPOCHS:-100}"
 VAL_INTERVAL="${VAL_INTERVAL:-10}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data}"
-RESULTS_JSON="${RESULTS_JSON:-${REPO_ROOT}/outputs/gcn_seed_sweep_results.json}"
-PLOT_PATH="${PLOT_PATH:-${REPO_ROOT}/outputs/gcn_seed_sweep_loss.png}"
+RESULTS_JSON="${RESULTS_JSON:-${OUTPUT_BASE}/gcn_seed_sweep_results.json}"
+PLOT_PATH="${PLOT_PATH:-${OUTPUT_BASE}/gcn_seed_sweep_loss.png}"
 
 export REPO_ROOT DATA_DIR RESULTS_JSON PLOT_PATH TOTAL_EPOCHS VAL_INTERVAL SEEDS
 
@@ -110,7 +117,7 @@ with initialize(config_path="configs", version_base=None):
                 f"dataset.init.splits=[{split_str}]",
                 f"dataset.init.data_dir={data_dir}",
                 f"seed={seed}",
-                "logger.disable=true",
+                "logger.disable=false",
                 f"logger.name={run_name}",
                 "logger.group=gcn_seed_sweep",
                 f"trainer.train.total_epochs={total_epochs}",
