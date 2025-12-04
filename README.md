@@ -2,6 +2,17 @@
 
 This project provides an introduction to Graph Neural Networks (GNNs) using PyTorch and PyTorch Geometric on the dataset QM9.
 
+## Dependencies
+
+Core runtime libraries pulled from the codebase and Hydra configs:
+- `torch` (install CPU/GPU build for your hardware) and `torchvision`
+- `torch-geometric` (and its PyG extras such as `torch_geometric.graphgym`)
+- `pytorch-lightning`
+- `hydra-core` and `omegaconf`
+- `wandb` for experiment logging
+- `matplotlib` for plots in the analysis scripts
+- `numpy` and `tqdm` for data handling/progress bars
+
 ## Installation
 
 To run this project, you need to install the required Python packages. You can install them using pip:
@@ -22,11 +33,14 @@ To run this project, you need to install the required Python packages. You can i
 # Please refer to the PyTorch Geometric installation guide:
 # https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html
 
-# Example for PyTorch 2.7 and CUDA 11.8
-# pip install torch_geometric
+# Example for PyTorch 2.7 and CUDA 11.8:
+# pip install torch_geometric torch_scatter torch_sparse torch_cluster torch_spline_conv
 
-# Then, install the other required packages:
-pip install hydra-core omegaconf wandb pytorch-lightning numpy tqdm
+# Then, install the other required packages (or just use requirements.txt):
+pip install hydra-core omegaconf wandb pytorch-lightning numpy tqdm torchvision matplotlib
+
+# Alternatively, install everything (except the hardware-specific torch/torch-geometric wheels) via:
+# pip install -r requirements.txt
 ```
 
 ## How to Run
@@ -55,4 +69,3 @@ Here are some great resources:
 - Tune hyperparameters (especially learning rate, layers, and hidden units)
 - Use advanced regularization techniques such as https://openreview.net/forum?id=xkljKdGe4E#discussion
 - You can try changing the generated features of the dataloader
-

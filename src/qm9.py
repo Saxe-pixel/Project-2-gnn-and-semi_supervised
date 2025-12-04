@@ -55,21 +55,21 @@ class QM9DataModule(pl.LightningDataModule):
 
 
     def prepare_data(self) -> None:
-        # Download data
+        # download data
         QM9(root=self.data_dir)
 
     def setup(self, stage: str | None = None) -> None:
         dataset = QM9(root=self.data_dir, transform=GetTarget(self.target))
 
-        # Shuffle dataset
+        # shuffle dataset
         rng = np.random.default_rng(seed=self.seed)
         dataset = dataset[rng.permutation(len(dataset))]
 
-        # Subset dataset
+        # subset dataset
         if self.subset_size is not None:
             dataset = dataset[:self.subset_size]
 
-        # Split dataset
+        # split dataset
         if all([type(split) == int for split in self.splits]):
             split_sizes = self.splits
         elif all([type(split) == float for split in self.splits]):
@@ -82,7 +82,7 @@ class QM9DataModule(pl.LightningDataModule):
         self.data_val = dataset[split_idx[1]:split_idx[2]]
         self.data_test = dataset[split_idx[2]:]
 
-        # NORMALIZE TARGETS USING TRAIN-LABELED ONLY
+        # normalize target using train labeled 
         ys = torch.stack([d.y for d in self.data_train_labeled])
         self.y_mean = ys.mean()
         self.y_std = ys.std()
@@ -92,7 +92,7 @@ class QM9DataModule(pl.LightningDataModule):
             for d in dset:
                 d.y = (d.y - self.y_mean) / self.y_std
 
-        # Apply normalization to ALL splits, using train stats
+        # normalization to all splits, using train stats
         norm_dataset(self.data_train_labeled)
         norm_dataset(self.data_train_unlabeled)
         norm_dataset(self.data_val)
@@ -101,7 +101,7 @@ class QM9DataModule(pl.LightningDataModule):
         print(f"Target normalization (train only): mean={self.y_mean.item():.4f}, std={self.y_std.item():.4f}")
 
 
-        # Set batch sizes. We want the labeled batch size to be the one given by the user, and the unlabeled one to be so that we have the same number of batches
+        # batch sizes. We want the labeled batch size to be the one given by the user, and the unlabeled one to be so that we have the same number of batches
         self.batch_size_train_labeled = self.batch_size_train
         labeled_batches = max(1, int(np.ceil(len(self.data_train_labeled) / self.batch_size_train_labeled)))
         target_unlabeled_batch = max(1, int(np.ceil(len(self.data_train_unlabeled) / labeled_batches)))

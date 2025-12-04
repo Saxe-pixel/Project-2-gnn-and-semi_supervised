@@ -13,11 +13,11 @@ class GCN(torch.nn.Module):
         self.convs = torch.nn.ModuleList()
         self.bns = torch.nn.ModuleList()
 
-        # First layer: input -> hidden
+        # first layer input -> hidden
         self.convs.append(GCNConv(num_node_features, hidden_channels))
         self.bns.append(BatchNorm1d(hidden_channels))
 
-        # Hidden layers: hidden -> hidden
+        # hidden layers 
         for _ in range(num_layers - 1):
             self.convs.append(GCNConv(hidden_channels, hidden_channels))
             self.bns.append(BatchNorm1d(hidden_channels))
@@ -28,7 +28,7 @@ class GCN(torch.nn.Module):
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
 
-        # Apply stacked GCN blocks
+        # stacked GCN blocks
         num_blocks = len(self.convs)
         for idx, (conv, bn) in enumerate(zip(self.convs, self.bns)):
             x = conv(x, edge_index)
@@ -37,7 +37,7 @@ class GCN(torch.nn.Module):
             if idx < num_blocks - 1:
                 x = self.dropout(x)
 
-        # Pool + readout
+        # Pool and readout
         x = global_mean_pool(x, batch)
         x = self.linear(x)
 
@@ -61,7 +61,6 @@ class GINEGCN(torch.nn.Module):
         self.linear = Linear(hidden_channels, 1)
 
     def _build_convs(self, edge_dim: int, device):
-        """Build GINEConv layers once we know edge_attr dimensionality."""
         def mlp(in_ch, out_ch):
             return Sequential(
                 Linear(in_ch, self.hidden_channels),
@@ -88,8 +87,7 @@ class GINEGCN(torch.nn.Module):
 
         if edge_attr is None:
             raise ValueError(
-                "GINEGCN expects `data.edge_attr` to be present (edge features), "
-                "but got None."
+                "GINEGCN expects `data.edge_attr` ""
             )
 
         # construct conv layers once we know edge_attr dimension

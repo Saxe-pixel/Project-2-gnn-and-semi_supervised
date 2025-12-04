@@ -1,0 +1,71 @@
+{
+  "metric": "test_MSE",
+  "data": {
+    "Supervised Ensemble": [
+      {
+        "target": 0,
+        "test_loss": 3.240304027284895
+      },
+      {
+        "target": 1,
+        "test_loss": 1675.343994140625
+      },
+      {
+        "target": 2,
+        "test_loss": 0.04537547007203102
+      },
+      {
+        "target": 3,
+        "test_loss": 0.47238059980528696
+      },
+      {
+        "target": 4,
+        "test_loss": 0.685542072568621
+      }
+    ],
+    "Mean Teacher (EMA)": [
+      {
+        "target": 0,
+        "test_loss": 3.2652160780770436
+      },
+      {
+        "target": 1,
+        "test_loss": 1698.0894426618304
+      },
+      {
+        "target": 2,
+        "test_loss": 0.04445410892367363
+      },
+      {
+        "target": 3,
+        "test_loss": 0.4742456717150552
+      },
+      {
+        "target": 4,
+        "test_loss": 0.6911347423280988
+      }
+    ],
+    "n-CPS Ensemble": [
+      {
+        "target": 0,
+        "test_loss": 3.2374115671430315
+      },
+      {
+        "target": 1,
+        "test_loss": 1691.1203787667412
+      },
+      {
+        "target": 2,
+        "test_loss": 0.043637807347944806
+      },
+      {
+        "target": 3,
+        "test_loss": 0.47735343660627094
+      },
+      {
+        "target": 4,
+        "test_loss": 0.7050859757832119
+      }
+    ]
+  }
+}

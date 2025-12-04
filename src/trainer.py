@@ -385,7 +385,7 @@ class NCPSTrainer:
                     # predictions of each model on weak view
                     weak_preds = [m(weak_view) for m in self.models]
 
-                    # pseudo-targets for each model = mean of others' weak preds
+                    # pseudo-targets for each model 
                     pseudo_targets = []
                     n = len(self.models)
                     with torch.no_grad():
@@ -394,7 +394,7 @@ class NCPSTrainer:
                             pseudo = sum(weak_preds[j] for j in others) / len(others)
                             pseudo_targets.append(pseudo)
 
-                    # each model predicts on strong view, match pseudo-targets
+                    # each model predicts on strong view match pseudo-targets
                     cps_losses = []
                     for m, pseudo in zip(self.models, pseudo_targets):
                         strong_preds = m(strong_view)

@@ -1,0 +1,386 @@
+{
+  "metric": "test_MSE",
+  "data": {
+    "Supervised Ensemble": [
+      {
+        "target": 0,
+        "seed": 0,
+        "val_loss": 3.8401557377406528,
+        "test_loss": 3.295029742377145,
+        "overrides": {}
+      },
+      {
+        "target": 0,
+        "seed": 1,
+        "val_loss": 3.9953649384634837,
+        "test_loss": 3.3772295202527727,
+        "overrides": {}
+      },
+      {
+        "target": 0,
+        "seed": 2,
+        "val_loss": 3.9491629941122874,
+        "test_loss": 3.297067471912929,
+        "overrides": {}
+      },
+      {
+        "target": 1,
+        "seed": 0,
+        "val_loss": 1547.8858119419642,
+        "test_loss": 1670.9554268973213,
+        "overrides": {}
+      },
+      {
+        "target": 1,
+        "seed": 1,
+        "val_loss": 1589.4923618861608,
+        "test_loss": 1702.614536830357,
+        "overrides": {}
+      },
+      {
+        "target": 1,
+        "seed": 2,
+        "val_loss": 1590.0997314453125,
+        "test_loss": 1716.822509765625,
+        "overrides": {}
+      },
+      {
+        "target": 2,
+        "seed": 0,
+        "val_loss": 0.046809904277324677,
+        "test_loss": 0.04647353504385267,
+        "overrides": {}
+      },
+      {
+        "target": 2,
+        "seed": 1,
+        "val_loss": 0.04605336008327348,
+        "test_loss": 0.04576335208756583,
+        "overrides": {}
+      },
+      {
+        "target": 2,
+        "seed": 2,
+        "val_loss": 0.04661255010536739,
+        "test_loss": 0.046908438737903325,
+        "overrides": {}
+      },
+      {
+        "target": 3,
+        "seed": 0,
+        "val_loss": 0.45916496430124554,
+        "test_loss": 0.47567527634756906,
+        "overrides": {}
+      },
+      {
+        "target": 3,
+        "seed": 1,
+        "val_loss": 0.4831736981868744,
+        "test_loss": 0.5031110601765769,
+        "overrides": {}
+      },
+      {
+        "target": 3,
+        "seed": 2,
+        "val_loss": 0.4982699283531734,
+        "test_loss": 0.5165542704718453,
+        "overrides": {}
+      },
+      {
+        "target": 4,
+        "seed": 0,
+        "val_loss": 0.6721136569976807,
+        "test_loss": 0.7074751257896423,
+        "overrides": {}
+      },
+      {
+        "target": 4,
+        "seed": 1,
+        "val_loss": 0.6841372506959098,
+        "test_loss": 0.716864790235247,
+        "overrides": {}
+      },
+      {
+        "target": 4,
+        "seed": 2,
+        "val_loss": 0.6811976943697248,
+        "test_loss": 0.704795411654881,
+        "overrides": {}
+      }
+    ],
+    "Mean Teacher (EMA)": [
+      {
+        "target": 0,
+        "seed": 0,
+        "val_loss": 3.9778109277997697,
+        "test_loss": 3.2935047830854143,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 0,
+        "seed": 1,
+        "val_loss": 3.9093615668160573,
+        "test_loss": 3.2980545248304094,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 0,
+        "seed": 2,
+        "val_loss": 3.8777482509613037,
+        "test_loss": 3.2566936016082764,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 1,
+        "seed": 0,
+        "val_loss": 1583.1546630859375,
+        "test_loss": 1708.3790457589287,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 1,
+        "seed": 1,
+        "val_loss": 1588.0126429966517,
+        "test_loss": 1700.6559012276787,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 1,
+        "seed": 2,
+        "val_loss": 1574.549595424107,
+        "test_loss": 1701.146205357143,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 2,
+        "seed": 0,
+        "val_loss": 0.04428486579230854,
+        "test_loss": 0.04444845340081623,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 2,
+        "seed": 1,
+        "val_loss": 0.04615948402455875,
+        "test_loss": 0.0458530421767916,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 2,
+        "seed": 2,
+        "val_loss": 0.046057267912796566,
+        "test_loss": 0.04564914905599186,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 3,
+        "seed": 0,
+        "val_loss": 0.46896793586867197,
+        "test_loss": 0.485597346510206,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 3,
+        "seed": 1,
+        "val_loss": 0.4634017986910684,
+        "test_loss": 0.47943403465407236,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 3,
+        "seed": 2,
+        "val_loss": 0.4685142082827432,
+        "test_loss": 0.4864571307386671,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 4,
+        "seed": 0,
+        "val_loss": 0.6758177706173488,
+        "test_loss": 0.7046768920762199,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 4,
+        "seed": 1,
+        "val_loss": 0.6672977038792202,
+        "test_loss": 0.6984040311404637,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      },
+      {
+        "target": 4,
+        "seed": 2,
+        "val_loss": 0.7036732094628471,
+        "test_loss": 0.7319669212613787,
+        "overrides": {
+          "trainer.init.consistency_weight": 0.001
+        }
+      }
+    ],
+    "n-CPS Ensemble": [
+      {
+        "target": 0,
+        "seed": 0,
+        "val_loss": 3.9517287526811873,
+        "test_loss": 3.2514149120875766,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 0,
+        "seed": 1,
+        "val_loss": 4.080333096640451,
+        "test_loss": 3.2870045048849925,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 0,
+        "seed": 2,
+        "val_loss": 3.9581435407911028,
+        "test_loss": 3.244354929242815,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 1,
+        "seed": 0,
+        "val_loss": 1596.6461356026787,
+        "test_loss": 1724.8611014229912,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 1,
+        "seed": 1,
+        "val_loss": 1571.0835135323662,
+        "test_loss": 1686.0437534877233,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 1,
+        "seed": 2,
+        "val_loss": 1575.2698625837054,
+        "test_loss": 1701.2371826171875,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 2,
+        "seed": 0,
+        "val_loss": 0.044768638376678736,
+        "test_loss": 0.045145047030278614,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 2,
+        "seed": 1,
+        "val_loss": 0.04701214815889086,
+        "test_loss": 0.04648745645369802,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 2,
+        "seed": 2,
+        "val_loss": 0.045937315693923404,
+        "test_loss": 0.04606974018471582,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 3,
+        "seed": 0,
+        "val_loss": 0.45930698939732145,
+        "test_loss": 0.4742770620754787,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 3,
+        "seed": 1,
+        "val_loss": 0.4626544841698238,
+        "test_loss": 0.47470601541655405,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 3,
+        "seed": 2,
+        "val_loss": 0.46940259848322186,
+        "test_loss": 0.48641638244901386,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 4,
+        "seed": 0,
+        "val_loss": 0.6889319845608303,
+        "test_loss": 0.717927736895425,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 4,
+        "seed": 1,
+        "val_loss": 0.6780465585844857,
+        "test_loss": 0.7097287092890058,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      },
+      {
+        "target": 4,
+        "seed": 2,
+        "val_loss": 0.6700344170842852,
+        "test_loss": 0.7015009777886527,
+        "overrides": {
+          "trainer.init.cps_weight": 0.001
+        }
+      }
+    ]
+  }
+}

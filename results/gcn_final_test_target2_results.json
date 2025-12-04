@@ -1,0 +1,44 @@
+{
+  "target": 2,
+  "results": [
+    {
+      "method": "Supervised Baseline",
+      "test_mse": 0.043884064470018656,
+      "params": {
+        "model.init.hidden_channels": 256,
+        "model.init.num_layers": 5,
+        "model.init.dropout": 0.39,
+        "trainer.init.optimizer.lr": 0.00385,
+        "trainer.init.optimizer.weight_decay": 0.00048
+      }
+    },
+    {
+      "method": "Mean Teacher",
+      "test_mse": 0.04052270257047245,
+      "params": {
+        "model.init.hidden_channels": 256,
+        "model.init.num_layers": 3,
+        "model.init.dropout": 0.08,
+        "trainer.init.optimizer.lr": 0.0062,
+        "trainer.init.optimizer.weight_decay": 5.78e-05,
+        "trainer.init.consistency_weight": 0.544,
+        "trainer.init.ema_decay": 0.9935,
+        "trainer.init.consistency_rampup_epochs": 5
+      }
+    },
+    {
+      "method": "n-CPS Ensemble",
+      "test_mse": 0.036625193165881295,
+      "params": {
+        "model.init.hidden_channels": 256,
+        "model.init.num_layers": 5,
+        "model.init.dropout": 0.13,
+        "trainer.init.optimizer.lr": 0.00247,
+        "trainer.init.optimizer.weight_decay": 0.00019,
+        "trainer.init.cps_weight": 0.1993,
+        "trainer.init.cps_rampup_epochs": 10,
+        "trainer.init.num_models": 4
+      }
+    }
+  ]
+}
