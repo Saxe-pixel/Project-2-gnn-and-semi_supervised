@@ -86,9 +86,7 @@ class GINEGCN(torch.nn.Module):
         edge_attr = getattr(data, "edge_attr", None)
 
         if edge_attr is None:
-            raise ValueError(
-                "GINEGCN expects `data.edge_attr` ""
-            )
+            raise ValueError("GINEGCN expects data.edge_attr to be present.")
 
         # construct conv layers once we know edge_attr dimension
         if self.conv1 is None:
