@@ -1,0 +1,67 @@
+dataset:
+  dataset_name: qm9
+  num_outputs: 1
+  init:
+    _target_: qm9.QM9DataModule
+    data_augmentation: false
+    name: qm9
+    target: 2
+    data_dir: ./data
+    batch_size_train: 100
+    batch_size_inference: 2048
+    num_workers: 4
+    splits:
+    - 0.79
+    - 0.01
+    - 0.1
+    - 0.1
+    seed: 0
+    subset_size: null
+trainer:
+  method: n-cps
+  train:
+    total_epochs: 100
+    validation_interval: 10
+  init:
+    _target_: trainer.NCPSTrainer
+    num_models: 3
+    supervised_criterion:
+      _target_: torch.nn.MSELoss
+    unsupervised_criterion:
+      _target_: torch.nn.MSELoss
+    optimizer:
+      _target_: torch.optim.AdamW
+      _partial_: true
+      lr: 0.0007
+      weight_decay: 0.005
+    scheduler:
+      _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+      _partial_: true
+      T_max: 100
+    cps_weight: 0.0002
+    cps_rampup_epochs: 80
+    mask_percentile: 0.05
+    strong_node_noise: 0.002
+    strong_edge_drop: 0.002
+logger:
+  _target_: logger.WandBLogger
+  group: ncps_sweep
+  name: nico_${model.name}_seed=${seed}
+  job_type: test
+  entity: magnusev-dtu
+  project_name: semi-supervised-ensembles
+  disable: false
+  local_dir: ./logs
+model:
+  name: gcn_cps
+  init:
+    _target_: models.GCN_CPS
+    _partial_: false
+    hidden_channels: 128
+    dropout_p: 0.3
+seed: 1
+device: unset
+force_deterministic: false
+debug_mode: false
+result_dir: ./results
+compile_model: false

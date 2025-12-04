@@ -43,6 +43,7 @@ class WandBLogger:
         if not self.disable:
             self.run = wnb.init(
                 name=self.name,
+                reinit=True,
                 group=self.group,
                 config=hparams,
                 project=self.project_name,

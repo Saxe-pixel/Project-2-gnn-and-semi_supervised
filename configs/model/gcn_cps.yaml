@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+
+name: gcn_cps
+
+init:
+  _target_: models.GCN_CPS
+  _partial_: false
+  hidden_channels: 128
+  dropout_p: 0.3               # Strong dropout for CPS ensemble diversity

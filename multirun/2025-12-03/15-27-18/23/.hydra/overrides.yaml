@@ -1,0 +1,9 @@
+- trainer=NCPSTrainer
+- model=gcn_cps
+- dataset=qm9
+- logger.group=ncps_sweep
+- trainer.init.cps_weight=0.0002
+- trainer.init.mask_percentile=0.1
+- trainer.init.strong_node_noise=0.003
+- trainer.init.strong_edge_drop=0.004
+- seed=1

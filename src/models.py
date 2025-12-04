@@ -1,52 +1,51 @@
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, global_mean_pool, GINEConv, JumpingKnowledge
-from torch.nn import BatchNorm1d, Dropout, Sequential, ReLU, Linear, ModuleList
+from torch.nn import BatchNorm1d, Dropout, Sequential, ReLU, Linear, ModuleList, LayerNorm
 from typing import List
 
 
 class GCN(torch.nn.Module):
-    def __init__(self, num_node_features, hidden_channels=128):
-        super(GCN, self).__init__()
+    def __init__(self, num_node_features, hidden_channels=128, dropout_p=0.3):
+        super().__init__()
+
         self.conv1 = GCNConv(num_node_features, hidden_channels)
-        self.bn1 = BatchNorm1d(hidden_channels)
+        self.norm1 = LayerNorm(hidden_channels)
 
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
-        self.bn2 = BatchNorm1d(hidden_channels)
+        self.norm2 = LayerNorm(hidden_channels)
 
         self.conv3 = GCNConv(hidden_channels, hidden_channels)
-        self.bn3 = BatchNorm1d(hidden_channels)
+        self.norm3 = LayerNorm(hidden_channels)
 
-        # Regularization
-        self.dropout = Dropout(p=0.2)
+        self.dropout = Dropout(dropout_p)
 
         self.linear = torch.nn.Linear(hidden_channels, 1)
 
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
 
-        # Layer 1
         x = self.conv1(x, edge_index)
-        x = self.bn1(x)
+        x = self.norm1(x)
         x = F.relu(x)
         x = self.dropout(x)
 
-        # Layer 2
         x = self.conv2(x, edge_index)
-        x = self.bn2(x)
+        x = self.norm2(x)
         x = F.relu(x)
         x = self.dropout(x)
 
-        # Layer 3
         x = self.conv3(x, edge_index)
-        x = self.bn3(x)
+        x = self.norm3(x)
         x = F.relu(x)
+        x = self.dropout(x)
 
-        # Pool + readout
         x = global_mean_pool(x, batch)
+        x = self.dropout(x)  # critical for diversity
         x = self.linear(x)
 
         return x
+
 
 class GINEGCN(torch.nn.Module):
     def __init__(self, num_node_features, edge_dim, hidden_channels=128):
@@ -108,89 +107,55 @@ class GINEGCN(torch.nn.Module):
         return x
 
 
-class OptimizedGINEGNN(torch.nn.Module):
-    """
-    High-capacity GNN tailored for QM9-style molecular regression.
+import torch
+import torch.nn.functional as F
+from torch.nn import Dropout, LayerNorm
+from torch_geometric.nn import GCNConv, global_mean_pool
 
-    Design choices:
-    - GINEConv with learned edge embeddings (bond features).
-    - Deep stack of message passing layers with residual connections.
-    - Jumping Knowledge over all layers for stable deep training.
-    - Two-stage MLP readout for strong expressiveness.
+
+class GCN_CPS(torch.nn.Module):
     """
-    def __init__(
-        self,
-        num_node_features: int,
-        edge_dim: int,
-        hidden_channels: int = 256,
-        num_layers: int = 6,
-        dropout_rate: float = 0.3,
-    ):
+    Final GCN architecture optimized for:
+    - Ensemble diversity
+    - CPS stability
+    - EMA teacher compatibility
+    """
+
+    def __init__(self, num_node_features, hidden_channels=128, dropout_p=0.3):
         super().__init__()
 
-        self.hidden_channels = hidden_channels
-        self.num_layers = num_layers
+        self.conv1 = GCNConv(num_node_features, hidden_channels)
+        self.norm1 = LayerNorm(hidden_channels)
 
-        # Encode raw node and edge features into a common hidden space.
-        self.node_encoder = Linear(num_node_features, hidden_channels)
-        self.edge_encoder = Linear(edge_dim, hidden_channels)
+        self.conv2 = GCNConv(hidden_channels, hidden_channels)
+        self.norm2 = LayerNorm(hidden_channels)
 
-        # GINEConv stack with residual connections.
-        self.convs = ModuleList()
-        self.norms = ModuleList()
+        self.conv3 = GCNConv(hidden_channels, hidden_channels)
+        self.norm3 = LayerNorm(hidden_channels)
 
-        def make_mlp() -> Sequential:
-            return Sequential(
-                Linear(hidden_channels, hidden_channels),
-                ReLU(),
-                Linear(hidden_channels, hidden_channels),
-            )
+        self.dropout = Dropout(dropout_p)
 
-        for _ in range(num_layers):
-            self.convs.append(GINEConv(nn=make_mlp(), edge_dim=hidden_channels))
-            self.norms.append(BatchNorm1d(hidden_channels))
-
-        # Jumping Knowledge over all layers (concatenate).
-        self.jk = JumpingKnowledge(mode="cat")
-
-        jk_out_dim = hidden_channels * num_layers
-
-        # Two-layer MLP readout in graph space.
-        self.readout = Sequential(
-            Linear(jk_out_dim, hidden_channels),
-            BatchNorm1d(hidden_channels),
-            ReLU(),
-            Dropout(p=dropout_rate),
-            Linear(hidden_channels, hidden_channels),
-            ReLU(),
-            Linear(hidden_channels, 1),
-        )
-
-        self.dropout = Dropout(p=dropout_rate)
+        self.linear = torch.nn.Linear(hidden_channels, 1)
 
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
-        edge_attr = getattr(data, "edge_attr", None)
 
-        # Encode features.
-        x = self.node_encoder(x)
-        if edge_attr is not None:
-            edge_attr = self.edge_encoder(edge_attr)
+        x = self.conv1(x, edge_index)
+        x = self.norm1(x)
+        x = F.relu(x)
+        x = self.dropout(x)
 
-        layer_outputs: List[torch.Tensor] = []
+        x = self.conv2(x, edge_index)
+        x = self.norm2(x)
+        x = F.relu(x)
+        x = self.dropout(x)
 
-        for conv, norm in zip(self.convs, self.norms):
-            residual = x
-            x = conv(x, edge_index, edge_attr)
-            x = norm(x)
-            x = F.relu(x)
-            x = self.dropout(x)
-            x = x + residual  # Residual connection
-            layer_outputs.append(x)
+        x = self.conv3(x, edge_index)
+        x = self.norm3(x)
+        x = F.relu(x)
+        x = self.dropout(x)
 
-        # Aggregate over layers (Jumping Knowledge) and graphs (global pooling).
-        x_jk = self.jk(layer_outputs)
-        x_graph = global_mean_pool(x_jk, batch)
-
-        out = self.readout(x_graph)
-        return out
+        x = global_mean_pool(x, batch)
+        x = self.dropout(x)
+        x = self.linear(x)
+        return x

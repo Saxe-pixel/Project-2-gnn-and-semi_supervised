@@ -4,13 +4,13 @@ defaults:
 method: n-cps
 
 train:
-  total_epochs: 200
+  total_epochs: 100
   validation_interval: 10
 
 init:
   _target_: trainer.NCPSTrainer
 
-  num_models: 3        # balanced diversity
+  num_models: 3
 
   supervised_criterion:
     _target_: torch.nn.MSELoss
@@ -21,7 +21,7 @@ init:
   optimizer:
     _target_: torch.optim.AdamW
     _partial_: true
-    lr: 0.0007          # slightly lower works better with 3-model CPS
+    lr: 0.0007
     weight_decay: 0.005
 
   scheduler:
@@ -29,13 +29,11 @@ init:
     _partial_: true
     T_max: 100
 
-  # CPS hyperparameters tuned for stability on QM9 regression
-  cps_weight: 0.0005
-  cps_rampup_epochs: 150
+  # Strong CPS + slow warm-up + soft weighting
+  cps_weight: 2.0
+  cps_rampup_epochs: 80
+  mask_percentile: 0.05
 
-  # Only trust low-uncertainty pseudo-labels from the ensemble
-  confidence_threshold: 0.1
-
-  # Strong augmentations for CPS (match Mean Teacher defaults)
-  strong_augment_node_noise_std: 0.05
-  strong_augment_edge_drop_prob: 0.05
+  # Very soft augmentations for regression
+  strong_node_noise: 0.003
+  strong_edge_drop: 0.002

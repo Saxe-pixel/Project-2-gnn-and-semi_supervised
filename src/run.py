@@ -16,6 +16,22 @@ def main(cfg):
     # print out the full config
     print(OmegaConf.to_yaml(cfg))
 
+    # Build a descriptive W&B run name that encodes key hyperparameters.
+    # This is especially useful for sweeps with NCPSTrainer.
+    base_run_name = f"nico_{cfg.model.name}"
+    if getattr(cfg.trainer, "method", None) == "n-cps":
+        tinit = cfg.trainer.init
+        run_name = (
+            f"{base_run_name}_"
+            f"cw={tinit.cps_weight}_"
+            f"mp={tinit.mask_percentile}_"
+            f"nn={tinit.strong_node_noise}_"
+            f"ed={tinit.strong_edge_drop}_"
+            f"s={cfg.seed}"
+        )
+    else:
+        run_name = f"{base_run_name}_seed={cfg.seed}"
+
     if cfg.device in ["unset", "auto"]:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
@@ -23,7 +39,7 @@ def main(cfg):
 
     seed_everything(cfg.seed, cfg.force_deterministic)
 
-    logger = hydra.utils.instantiate(cfg.logger)
+    logger = hydra.utils.instantiate(cfg.logger, name=run_name)
     hparams = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
     logger.init_run(hparams)
 
@@ -51,6 +67,7 @@ def main(cfg):
     results = trainer.train(**cfg.trainer.train)
     # results = torch.Tensor(results)
     print("Training finished. Results:", results)
+    logger.end_run()
 
 
 
