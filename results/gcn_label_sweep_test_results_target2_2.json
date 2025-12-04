@@ -1,0 +1,101 @@
+{
+  "metric": "test_MSE",
+  "data": {
+    "Supervised Baseline": [
+      {
+        "label_pct": 0.5,
+        "unlabel_pct": 79.5,
+        "test_loss": 0.05858040813888822
+      },
+      {
+        "label_pct": 1.0,
+        "unlabel_pct": 79.0,
+        "test_loss": 0.04403891946588244
+      },
+      {
+        "label_pct": 2.0,
+        "unlabel_pct": 78.0,
+        "test_loss": 0.0345413184591702
+      },
+      {
+        "label_pct": 3.0,
+        "unlabel_pct": 77.0,
+        "test_loss": 0.029228006090436662
+      },
+      {
+        "label_pct": 5.0,
+        "unlabel_pct": 75.0,
+        "test_loss": 0.023654967014278685
+      },
+      {
+        "label_pct": 8.0,
+        "unlabel_pct": 72.0,
+        "test_loss": 0.02117875697357314
+      }
+    ],
+    "Mean Teacher": [
+      {
+        "label_pct": 0.5,
+        "unlabel_pct": 79.5,
+        "test_loss": 0.15072622469493321
+      },
+      {
+        "label_pct": 1.0,
+        "unlabel_pct": 79.0,
+        "test_loss": 0.04035640774028642
+      },
+      {
+        "label_pct": 2.0,
+        "unlabel_pct": 78.0,
+        "test_loss": 0.03180274260895593
+      },
+      {
+        "label_pct": 3.0,
+        "unlabel_pct": 77.0,
+        "test_loss": 0.027638014938150133
+      },
+      {
+        "label_pct": 5.0,
+        "unlabel_pct": 75.0,
+        "test_loss": 0.02356218094272273
+      },
+      {
+        "label_pct": 8.0,
+        "unlabel_pct": 72.0,
+        "test_loss": 0.020055739475148066
+      }
+    ],
+    "n-CPS Ensemble": [
+      {
+        "label_pct": 0.5,
+        "unlabel_pct": 79.5,
+        "test_loss": 0.04700093237417085
+      },
+      {
+        "label_pct": 1.0,
+        "unlabel_pct": 79.0,
+        "test_loss": 0.03724603461367743
+      },
+      {
+        "label_pct": 2.0,
+        "unlabel_pct": 78.0,
+        "test_loss": 0.02807063635970865
+      },
+      {
+        "label_pct": 3.0,
+        "unlabel_pct": 77.0,
+        "test_loss": 0.0245711441550936
+      },
+      {
+        "label_pct": 5.0,
+        "unlabel_pct": 75.0,
+        "test_loss": 0.020699444359966686
+      },
+      {
+        "label_pct": 8.0,
+        "unlabel_pct": 72.0,
+        "test_loss": 0.017408287152647972
+      }
+    ]
+  }
+}
