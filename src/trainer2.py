@@ -33,8 +33,12 @@ class SemiSupervisedEnsemble:
         # Logging
         self.logger = logger
 
-        # History of validation metrics (logged at validation steps)
-        self.history = {"epoch": [], "val_MSE": []}
+        # History of metrics per epoch
+        self.history = {
+            "epoch": [],
+            "val_MSE": [],
+            "train_supervised_loss": [],
+        }
 
     def validate(self):
         for model in self.models:
@@ -77,6 +81,9 @@ class SemiSupervisedEnsemble:
                 self.optimizer.step()
             self.scheduler.step()
             supervised_losses_logged = np.mean(supervised_losses_logged)
+
+            # Store training supervised loss (normalized MSE) for this epoch
+            self.history["train_supervised_loss"].append(float(supervised_losses_logged))
 
             summary_dict = {
                 "supervised_loss": supervised_losses_logged,
@@ -139,11 +146,12 @@ class MeanTeacherTrainer:
         self.y_mean = self.datamodule.y_mean.to(self.device)
         self.y_std = self.datamodule.y_std.to(self.device)
 
-        # History of validation metrics (teacher and student) per validation step
+        # History of metrics per epoch
         self.history = {
             "epoch": [],
             "val_MSE_teacher": [],
             "val_MSE_student": [],
+            "train_supervised_loss": [],
         }
 
     def _update_teacher(self) -> None:
@@ -247,11 +255,17 @@ class MeanTeacherTrainer:
 
             self.scheduler.step()
 
+            avg_supervised = float(np.mean(supervised_losses)) if supervised_losses else 0.0
+            avg_consistency = float(np.mean(consistency_losses)) if consistency_losses else 0.0
+
             summary_dict = {
-                "supervised_loss": float(np.mean(supervised_losses)) if supervised_losses else 0.0,
-                "consistency_loss": float(np.mean(consistency_losses)) if consistency_losses else 0.0,
+                "supervised_loss": avg_supervised,
+                "consistency_loss": avg_consistency,
                 "consistency_weight": self._current_consistency_weight(epoch),
             }
+
+            # Store training supervised loss (normalized MSE) for this epoch
+            self.history["train_supervised_loss"].append(avg_supervised)
 
             if epoch % validation_interval == 0 or epoch == total_epochs:
                 # teacher metrics
@@ -328,8 +342,12 @@ class NCPSTrainer:
         self.y_mean = datamodule.y_mean.to(device)
         self.y_std = datamodule.y_std.to(device)
 
-        # History of validation metrics per validation step
-        self.history = {"epoch": [], "val_MSE": []}
+        # History of metrics per epoch
+        self.history = {
+            "epoch": [],
+            "val_MSE": [],
+            "train_supervised_loss": [],
+        }
 
     def _current_cps_weight(self, epoch: int) -> float:
         if self.cps_rampup_epochs <= 0:
@@ -432,11 +450,17 @@ class NCPSTrainer:
 
             self.scheduler.step()
 
+            avg_supervised = float(np.mean(supervised_losses_logged)) if supervised_losses_logged else 0.0
+            avg_cps = float(np.mean(cps_losses_logged)) if cps_losses_logged else 0.0
+
             summary_dict = {
-                "supervised_loss": float(np.mean(supervised_losses_logged)) if supervised_losses_logged else 0.0,
-                "cps_loss": float(np.mean(cps_losses_logged)) if cps_losses_logged else 0.0,
+                "supervised_loss": avg_supervised,
+                "cps_loss": avg_cps,
                 "cps_weight": cps_weight,
             }
+
+            # Store training supervised loss (normalized MSE) for this epoch
+            self.history["train_supervised_loss"].append(avg_supervised)
 
             if epoch % validation_interval == 0 or epoch == total_epochs:
                 val_metrics = self.validate()
