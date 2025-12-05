@@ -22,7 +22,9 @@ OUTPUT_BASE="${OUTPUT_BASE:-${REPO_ROOT}/results}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_BASE}/logs}"
 mkdir -p "${OUTPUT_BASE}" "${LOG_DIR}"
 
-source ~/miniconda3/bin/activate gnn-qm9
+module purge
+module load python3/3.11.13
+source ~/venv/gnn311/bin/activate
 
 # --- CONFIGURATION ---
 TARGET="2"  # HOMO Energy
@@ -33,8 +35,9 @@ VAL_INTERVAL="${VAL_INTERVAL:-10}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data}"
 RESULTS_JSON="${RESULTS_JSON:-${OUTPUT_BASE}/gcn_label_sweep_test_results_target2_2.json}"
 PLOT_PATH="${PLOT_PATH:-${OUTPUT_BASE}/gcn_label_sweep_test_curve_target2_2.png}"
+SEED="${SEED:-0}"  # Random seed override (matches configs/run.yaml default if unset)
 
-export REPO_ROOT DATA_DIR RESULTS_JSON PLOT_PATH TOTAL_EPOCHS VAL_INTERVAL TARGET LABEL_PCTS
+export REPO_ROOT DATA_DIR RESULTS_JSON PLOT_PATH TOTAL_EPOCHS VAL_INTERVAL TARGET LABEL_PCTS SEED
 
 python - <<'PY'
 import json
@@ -55,6 +58,7 @@ from utils import seed_everything
 
 target = int(os.environ["TARGET"])
 label_pcts = [float(x) for x in os.environ["LABEL_PCTS"].split()]
+seed = int(os.environ.get("SEED", "0"))
 
 # ==================================================================================
 # OPTIMIZED HYPERPARAMETERS (Valid for Low-Data Regime)
@@ -156,6 +160,7 @@ with initialize(config_path="configs", version_base=None):
                 f"dataset.init.splits=[{split_str}]",
                 f"dataset.init.target={target}",
                 f"dataset.init.data_dir={data_dir}",
+                f"seed={seed}",
                 "logger.disable=false",
                 f"logger.name={run_name}",
                 "logger.group=gcn_label_sweep_test",
