@@ -1,71 +1,76 @@
-# GNN Introduction
+# GNN_semi_supervised_drug_discovery
 
-This project provides an introduction to Graph Neural Networks (GNNs) using PyTorch and PyTorch Geometric on the dataset QM9.
+This repository contains code for semi‑supervised molecular property prediction using Graph Neural Networks on the QM9 dataset (DTU course 02456 Deep Learning).
 
-## Dependencies
+The **main results and figures** are collected in the notebook:
+- `notebooks/semisupervised_pipeline.ipynb`
 
-Core runtime libraries pulled from the codebase and Hydra configs:
-- `torch` (install CPU/GPU build for your hardware) and `torchvision`
-- `torch-geometric` (and its PyG extras such as `torch_geometric.graphgym`)
-- `pytorch-lightning`
-- `hydra-core` and `omegaconf`
-- `wandb` for experiment logging
-- `matplotlib` for plots in the analysis scripts
-- `numpy` and `tqdm` for data handling/progress bars
 
-## Installation
+## Running Models Locally
 
-To run this project, you need to install the required Python packages. You can install them using pip:
-
-```bash
-# It is recommended to install PyTorch first, following the official instructions
-# for your specific hardware (CPU or GPU with a specific CUDA version).
-# See: https://pytorch.org/get-started/locally/
-
-# For example, for a recent CUDA version:
-# pip install torch torchvision torchaudio
-
-# Or for CPU only:
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# After installing PyTorch, install PyTorch Geometric.
-# The exact command depends on your PyTorch and CUDA versions.
-# Please refer to the PyTorch Geometric installation guide:
-# https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html
-
-# Example for PyTorch 2.7 and CUDA 11.8:
-# pip install torch_geometric torch_scatter torch_sparse torch_cluster torch_spline_conv
-
-# Then, install the other required packages (or just use requirements.txt):
-pip install hydra-core omegaconf wandb pytorch-lightning numpy tqdm torchvision matplotlib
-
-# Alternatively, install everything (except the hardware-specific torch/torch-geometric wheels) via:
-# pip install -r requirements.txt
-```
-
-## How to Run
-
-The main entry point for this project is `src/run.py`. It uses `hydra` for configuration management. Hydra is a broadly used and highly respected so I recommend using it. You can find a guide to it here https://medium.com/@jennytan5522/introduction-to-hydra-configuration-for-python-646e1dd4d1e9.
-
-To run the code, execute the following command from the root of the project:
+Train a model using Hydra:
 
 ```bash
 python src/run.py
 ```
 
-You can override the default configuration by passing arguments from the command line. For example, to use a different model configuration:
+You can override the model and trainer from the command line, e.g.:
 
 ```bash
-python src/run.py model=gcn
+python src/run.py model=gcn         # standard GCN
+python src/run.py model=gcn_deep   # deeper GCN
+python src/run.py trainer=mean-teacher
+python src/run.py trainer=NCPSTrainer
 ```
 
-The configuration files are located in the `configs/` directory.
 
-## Improving the predictive accuracy
-There are many ways to improve the GNN. Please try to get the validation error (MSE) as low as possible. I have not implemented the code to run on the test data. That is for you to do, but please wait until you have the final model.
-Here are some great resources:
-- Try different GNN architectures and layers see (https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html)
-- Try different optimizers and schedulers
-- Tune hyperparameters (especially learning rate, layers, and hidden units)
-- Use advanced regularization techniques such as https://openreview.net/forum?id=xkljKdGe4E#discussion
-- You can try changing the generated features of the dataloader
+## Submitting Jobs on DTU HPC
+
+Submit a job via LSF using one of the scripts in `configs/scripts/`:
+
+```bash
+bsub < configs/scripts/gcn_label_sweep.sh
+```
+
+
+## Repository Structure
+
+```text
+configs/        - Hydra configs and experiment scripts
+src/            - Models, trainers, data modules, utils, run.py
+notebooks/      - Main analysis notebook with final figures
+results/        - Saved JSON summaries and plots (some useful, some not)
+outputs/        - Hydra / W&B run directories
+logs/           - HPC log files
+requirements.txt
+```
+
+
+## Dataset
+
+The project uses the QM9 dataset from PyTorch Geometric.  
+By default (`configs/dataset/qm9.yaml`) we use a low‑label split:
+
+* 79% unlabeled
+* 1% labeled
+* 10% validation
+* 10% test
+
+Some comparison scripts also use 72% / 8% / 10% / 10% splits; see `configs/scripts/compare_original_vs_gcn_qm9_variants.sh`.
+In the report, a label sweep was done from 0.5-8%.
+
+## Summary (empirical)
+
+High‑level observations from the experiments (see the notebook for details):
+
+* Semi‑supervised methods (Mean Teacher, n‑CPS) give modest gains when labels are very scarce.
+* Architecture depth, hidden size and optimization hyperparameters have a large impact on performance.
+
+
+## Installation
+
+Install PyTorch and PyTorch Geometric for your hardware (see their official installation guides), then install the remaining dependencies:
+
+```bash
+pip install -r requirements.txt
+```
