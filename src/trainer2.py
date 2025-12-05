@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-class SemiSupervisedEnsemble:
+class SemiSupervisedEnsemble2:
     def __init__(
         self,
         supervised_criterion,
@@ -91,7 +91,7 @@ class SemiSupervisedEnsemble:
             self.logger.log_dict(summary_dict, step=epoch)
 
 
-class MeanTeacherTrainer:
+class MeanTeacherTrainer2:
     def __init__(
         self,
         supervised_criterion,
@@ -274,7 +274,7 @@ class MeanTeacherTrainer:
         return summary_dict
 
 
-class NCPSTrainer:
+class NCPSTrainer2:
     def __init__(
         self,
         supervised_criterion,

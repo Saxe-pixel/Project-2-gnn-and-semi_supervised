@@ -68,10 +68,24 @@ models_to_run = [
     ("gcn", "Improved GCN"),
 ]
 
+# Each entry: (trainer_cfg_name, display_name, trainer_target_override)
+# We override trainer.init._target_ to point to the classes in trainer2.py.
 trainers_to_run = [
-    ("semi-supervised-ensemble", "Supervised Ensemble"),
-    ("mean-teacher", "Mean Teacher"),
-    ("NCPSTrainer", "n-CPS Ensemble"),
+    (
+        "semi-supervised-ensemble",
+        "Supervised Ensemble",
+        "trainer.init._target_=trainer2.SemiSupervisedEnsemble2",
+    ),
+    (
+        "mean-teacher",
+        "Mean Teacher",
+        "trainer.init._target_=trainer2.MeanTeacherTrainer2",
+    ),
+    (
+        "NCPSTrainer",
+        "n-CPS Ensemble",
+        "trainer.init._target_=trainer2.NCPSTrainer2",
+    ),
 ]
 
 # Two QM9 datamodule variants from qm9.py:
@@ -93,7 +107,7 @@ val_interval = os.environ.get("VAL_INTERVAL", "10")
 
 def evaluate(trainer_id, trainer, loader, device, y_mean, y_std):
     """Evaluate on a split, handling each trainer type correctly."""
-    if trainer_id == "mean-teacher":
+    if trainer_id.startswith("mean-teacher"):
         models = [trainer.teacher]
     else:
         models = trainer.models
@@ -117,7 +131,7 @@ def evaluate(trainer_id, trainer, loader, device, y_mean, y_std):
 results = []
 
 with initialize(config_path="configs", version_base=None):
-    for trainer_id, trainer_name in trainers_to_run:
+    for trainer_id, trainer_name, trainer_target_override in trainers_to_run:
         for model_cfg, model_name in models_to_run:
             for ds_key, ds_name, ds_overrides in dataset_variants:
                 run_name = f"compare_qm9vars_{trainer_id}_{model_cfg}_{ds_key}"
@@ -137,6 +151,10 @@ with initialize(config_path="configs", version_base=None):
                     f"trainer.train.validation_interval={val_interval}",
                     f"seed={fixed_seed}",
                 ]
+
+                # Use trainer2.* implementations for this run
+                if trainer_target_override:
+                    overrides.append(trainer_target_override)
 
                 overrides.extend(ds_overrides)
 
@@ -169,7 +187,7 @@ with initialize(config_path="configs", version_base=None):
                 trainer.train(**cfg.trainer.train)
 
                 # Collect validation-history from trainer (per epoch)
-                if trainer_id == "mean-teacher":
+                if trainer_id.startswith("mean-teacher"):
                     epochs_hist = getattr(trainer, "history", {}).get("epoch", [])
                     vals_hist = getattr(trainer, "history", {}).get("val_MSE_teacher", [])
                 else:
