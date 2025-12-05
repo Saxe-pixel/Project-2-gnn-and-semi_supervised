@@ -1,0 +1,52 @@
+{
+  "results": [
+    {
+      "trainer": "Supervised Ensemble",
+      "trainer_id": "semi-supervised-ensemble",
+      "model": "Original_GCN",
+      "model_cfg": "original_gcn",
+      "val_mse": 0.07504898522581373,
+      "test_mse": 0.07145207801035472
+    },
+    {
+      "trainer": "Supervised Ensemble",
+      "trainer_id": "semi-supervised-ensemble",
+      "model": "Improved GCN",
+      "model_cfg": "gcn",
+      "val_mse": 0.02412170810358865,
+      "test_mse": 0.023168654580201422
+    },
+    {
+      "trainer": "Mean Teacher",
+      "trainer_id": "mean-teacher",
+      "model": "Original_GCN",
+      "model_cfg": "original_gcn",
+      "val_mse": 0.0701166040131024,
+      "test_mse": 0.06772996485233307
+    },
+    {
+      "trainer": "Mean Teacher",
+      "trainer_id": "mean-teacher",
+      "model": "Improved GCN",
+      "model_cfg": "gcn",
+      "val_mse": 0.023889499051230296,
+      "test_mse": 0.02336838442300047
+    },
+    {
+      "trainer": "n-CPS Ensemble",
+      "trainer_id": "NCPSTrainer",
+      "model": "Original_GCN",
+      "model_cfg": "original_gcn",
+      "val_mse": 0.07227736392191478,
+      "test_mse": 0.06941642612218857
+    },
+    {
+      "trainer": "n-CPS Ensemble",
+      "trainer_id": "NCPSTrainer",
+      "model": "Improved GCN",
+      "model_cfg": "gcn",
+      "val_mse": 0.024776139429637363,
+      "test_mse": 0.024277270372424806
+    }
+  ]
+}

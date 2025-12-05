@@ -1,0 +1,62 @@
+{
+  "target": 2,
+  "results": [
+    {
+      "method": "Supervised Baseline",
+      "test_mse": 0.034214606774704795,
+      "params": {
+        "model.init.hidden_channels": 256,
+        "model.init.num_layers": 5,
+        "model.init.dropout": 0.12,
+        "trainer.init.optimizer.lr": 0.0030168315088022883,
+        "trainer.init.optimizer.weight_decay": 5.264438233981562e-05
+      },
+      "best_trial": {
+        "json_name": "Supervised Ensemble",
+        "trial": 18,
+        "seed": 18,
+        "val_loss": 0.039992599082844596
+      }
+    },
+    {
+      "method": "Mean Teacher",
+      "test_mse": 0.03540721056716783,
+      "params": {
+        "model.init.hidden_channels": 256,
+        "model.init.num_layers": 5,
+        "model.init.dropout": 0.07,
+        "trainer.init.optimizer.lr": 0.007750415891541508,
+        "trainer.init.optimizer.weight_decay": 6.806059478192325e-05,
+        "trainer.init.consistency_weight": 0.416,
+        "trainer.init.ema_decay": 0.9701,
+        "trainer.init.consistency_rampup_epochs": 20
+      },
+      "best_trial": {
+        "json_name": "Mean Teacher (EMA)",
+        "trial": 23,
+        "seed": 23,
+        "val_loss": 0.03596714937261173
+      }
+    },
+    {
+      "method": "n-CPS Ensemble",
+      "test_mse": 0.036442769425255914,
+      "params": {
+        "model.init.hidden_channels": 256,
+        "model.init.num_layers": 4,
+        "model.init.dropout": 0.06,
+        "trainer.init.optimizer.lr": 0.0053880045846922105,
+        "trainer.init.optimizer.weight_decay": 0.0006224596057535733,
+        "trainer.init.cps_weight": 0.1014,
+        "trainer.init.cps_rampup_epochs": 5,
+        "trainer.init.num_models": 3
+      },
+      "best_trial": {
+        "json_name": "n-CPS Ensemble",
+        "trial": 13,
+        "seed": 13,
+        "val_loss": 0.037458806697811396
+      }
+    }
+  ]
+}

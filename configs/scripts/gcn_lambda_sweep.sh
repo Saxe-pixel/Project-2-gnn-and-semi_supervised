@@ -23,12 +23,34 @@ OUTPUT_BASE="${OUTPUT_BASE:-${REPO_ROOT}/results}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_BASE}/logs}"
 mkdir -p "${OUTPUT_BASE}" "${LOG_DIR}"
 
-source ~/miniconda3/bin/activate gnn-qm9
+module purge
+module load python3/3.11.13
+source ~/venv/gnn311/bin/activate
 
 
 # Configurable knobs
-MT_LAMBDAS="${MT_LAMBDAS:-1 0.5 0.2 0.1 0.05 0.02 0.01 0.005 0.002 0.001 0.0005}"
-NCPS_LAMBDAS="${NCPS_LAMBDAS:-0.001 0.005 0.01 0.02 0.05 0.1 0.2}"
+LAMBDA_START="${LAMBDA_START:-0.0005}"
+LAMBDA_END="${LAMBDA_END:-1.0}"
+NUM_LAMBDAS="${NUM_LAMBDAS:-50}"
+
+# Generate 50 equally spaced lambdas in [0.0005, 1.0] by default.
+LAMBDA_LIST=$(python - <<PY
+start = float("${LAMBDA_START}")
+end = float("${LAMBDA_END}")
+n = int("${NUM_LAMBDAS}")
+if n < 2:
+    vals = [start]
+else:
+    step = (end - start) / (n - 1)
+    vals = [start + i * step for i in range(n)]
+print(" ".join(f"{v:.6f}" for v in vals))
+PY
+)
+
+# Allow overriding via environment, but default both trainers to the same grid.
+: "${MT_LAMBDAS:=${LAMBDA_LIST}}"
+: "${NCPS_LAMBDAS:=${LAMBDA_LIST}}"
+
 TOTAL_EPOCHS="${TOTAL_EPOCHS:-80}"
 VAL_INTERVAL="${VAL_INTERVAL:-10}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data}"
@@ -68,7 +90,7 @@ data_dir = os.environ["DATA_DIR"]
 results_json = pathlib.Path(os.environ["RESULTS_JSON"])
 plot_mt_path = pathlib.Path(os.environ["PLOT_MT_PATH"])
 plot_ncps_path = pathlib.Path(os.environ["PLOT_NCPS_PATH"])
-total_epochs = os.environ.get("TOTAL_EPOCHS", "80")
+total_epochs = os.environ.get("TOTAL_EPOCHS", "100")
 val_interval = os.environ.get("VAL_INTERVAL", "10")
 
 def evaluate_val(trainer_id, trainer, device, dm):

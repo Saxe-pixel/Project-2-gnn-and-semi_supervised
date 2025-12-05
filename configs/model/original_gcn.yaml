@@ -1,0 +1,14 @@
+defaults:
+  - _self_
+
+name: original_gcn
+
+num_node_features: 11
+hidden_channels: 64
+
+init:
+  _target_: models.Original_GCN
+  _partial_: false
+  num_node_features: ${model.num_node_features}
+  hidden_channels: ${model.hidden_channels}
+

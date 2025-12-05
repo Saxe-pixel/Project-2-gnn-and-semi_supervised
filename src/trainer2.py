@@ -33,6 +33,9 @@ class SemiSupervisedEnsemble:
         # Logging
         self.logger = logger
 
+        # History of validation metrics (logged at validation steps)
+        self.history = {"epoch": [], "val_MSE": []}
+
     def validate(self):
         for model in self.models:
             model.eval()
@@ -81,6 +84,9 @@ class SemiSupervisedEnsemble:
             if epoch % validation_interval == 0 or epoch == total_epochs:
                 val_metrics = self.validate()
                 summary_dict.update(val_metrics)
+                if "val_MSE" in val_metrics:
+                    self.history["epoch"].append(epoch)
+                    self.history["val_MSE"].append(float(val_metrics["val_MSE"]))
                 pbar.set_postfix(summary_dict)
             self.logger.log_dict(summary_dict, step=epoch)
 
@@ -132,6 +138,13 @@ class MeanTeacherTrainer:
 
         self.y_mean = self.datamodule.y_mean.to(self.device)
         self.y_std = self.datamodule.y_std.to(self.device)
+
+        # History of validation metrics (teacher and student) per validation step
+        self.history = {
+            "epoch": [],
+            "val_MSE_teacher": [],
+            "val_MSE_student": [],
+        }
 
     def _update_teacher(self) -> None:
         with torch.no_grad():
@@ -249,6 +262,11 @@ class MeanTeacherTrainer:
                 summary_dict.update(val_teacher)
                 summary_dict.update(val_student)
 
+                # Store validation history
+                self.history["epoch"].append(epoch)
+                self.history["val_MSE_teacher"].append(float(val_teacher["val_MSE_teacher"]))
+                self.history["val_MSE_student"].append(float(val_student["val_MSE_student"]))
+
                 pbar.set_postfix(summary_dict)
 
             self.logger.log_dict(summary_dict, step=epoch)
@@ -309,6 +327,9 @@ class NCPSTrainer:
         # QM9 regression MSE metric
         self.y_mean = datamodule.y_mean.to(device)
         self.y_std = datamodule.y_std.to(device)
+
+        # History of validation metrics per validation step
+        self.history = {"epoch": [], "val_MSE": []}
 
     def _current_cps_weight(self, epoch: int) -> float:
         if self.cps_rampup_epochs <= 0:
@@ -420,6 +441,9 @@ class NCPSTrainer:
             if epoch % validation_interval == 0 or epoch == total_epochs:
                 val_metrics = self.validate()
                 summary_dict.update(val_metrics)
+                if "val_MSE" in val_metrics:
+                    self.history["epoch"].append(epoch)
+                    self.history["val_MSE"].append(float(val_metrics["val_MSE"]))
                 pbar.set_postfix(summary_dict)
 
             self.logger.log_dict(summary_dict, step=epoch)
